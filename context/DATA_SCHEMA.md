@@ -20,6 +20,7 @@
 | `track_id` | integer/null | 是 | 单视频内经人工复核的局部轨迹编号 |
 | `subject_id` | string/null | 是 | 人工确认的全局人物编号 |
 | `bbox_xyxy` | array[4]/null | 是 | `[x_min, y_min, x_max, y_max]`，原图像素坐标 |
+| `detection_confidence` | number/null | 是 | 人体检测置信度，自动预标注时范围为 `[0, 1]` |
 | `pose_model` | string/null | 是 | 例如 `openpose_BODY_25`；无骨架时为 null |
 | `keypoints` | array[25][3]/null | 是 | BODY_25 点，单点格式 `[x, y, confidence]` |
 | `keypoint_confidence` | array[25]/null | 是 | 从 `keypoints[*][2]` 冗余提取，便于质量控制 |
@@ -58,6 +59,7 @@ OpenPose BODY_25 必须严格保存为 `25 x 3`：
 
 - `frame_index >= 0`，同一视频内时间戳单调不减。
 - 非空 `bbox_xyxy` 满足 `x_min < x_max` 且 `y_min < y_max`。
+- 非空 `detection_confidence` 必须在 `[0, 1]`，人工补框可按标注协议另行约定。
 - 非空 `keypoints` 的形状必须为 `(25, 3)`，置信度应在 `[0, 1]`。
 - `subject_id` 只能由人工复核映射产生，不能直接复制 DeepSORT ID。
 - 每条处理记录必须能够追溯到原视频、轨迹版本和标注版本。

@@ -1,5 +1,76 @@
 # Codex 工作报告
 
+## T02 执行更新（2026-07-11）
+
+### 状态
+
+- `motpose` 环境、代码、严格环境检查和单段本地视频自动 smoke test 已完成。
+- 视频格式和数据一致性检查通过；只做了 10 个整秒帧及第 86、120 帧的抽样可视检查。
+- T02 尚未完成全视频人工 ID Switch、断轨、误检、漏检复核，因此不标记为 `COMPLETED`。
+- 未安装 OpenPose、Docker 或 CVAT，未开始 T03。
+
+### 新建文件
+
+- `scripts/environment/check_mot_environment.py`
+- `scripts/mot/run_deepsort.py`
+- `environment/requirements/motpose.environment.yml`
+- `environment/requirements/motpose.requirements.txt`
+- `environment/requirements/motpose.pip-freeze.txt`
+- `logs/runs/T02_MOT_SMOKE_TEST.md`
+
+### 修改文件
+
+- `context/DATA_SCHEMA.md`：增加 `detection_confidence`。
+- `environment/system_info.txt`：追加 T02 安装和 CUDA smoke test 的真实结果。
+- `logs/daily/2026-07-11.md`：追加 T02 当日记录。
+- `tasks/CODEX_REPORT.md`：本节。
+
+用户或并行进程已有的 `tasks/CURRENT_TASK.md`、`tasks/TASK_QUEUE.md`、`tasks/DECISIONS.md`、`tasks/CLAUDE_REPORT.md` 和未跟踪的 `tasks/T02_ACCEPTANCE_CRITERIA.md` 均保留，Codex 未覆盖或夹带提交。
+
+### 关键执行命令
+
+```bash
+/home/a531/anaconda3/bin/conda create -n motpose python=3.10 pip -y
+/home/a531/anaconda3/envs/motpose/bin/python -m pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+/home/a531/anaconda3/envs/motpose/bin/python -m pip install ultralytics==8.4.57 deep-sort-realtime==1.3.2 opencv-python numpy==2.2.6 scipy pandas tqdm
+/home/a531/anaconda3/envs/motpose/bin/python -m pip install setuptools==80.9.0
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+env -u PYTHONPATH YOLO_CONFIG_DIR=/tmp /home/a531/anaconda3/envs/motpose/bin/python scripts/environment/check_mot_environment.py
+env -u PYTHONPATH YOLO_CONFIG_DIR=/tmp /home/a531/anaconda3/envs/motpose/bin/python scripts/mot/run_deepsort.py --video data/raw_videos/three-people-walking.mp4 --video-id three-people-walking --run-id 20260711_T02_001 --overwrite
+```
+
+### 环境结果
+
+- Python 3.10.20，PyTorch 2.5.1+cu121，torchvision 0.20.1+cu121。
+- RTX 3090 CUDA 可用，compute capability 8.6，GPU 张量 smoke test 通过。
+- PyTorch 内置 CUDA runtime 12.1、cuDNN 9.1；没有修改系统 CUDA 11.3。
+- ultralytics 8.4.57、deep-sort-realtime 1.3.2、OpenCV 5.0.0、NumPy 2.2.6、SciPy 1.15.3、Pandas 2.3.3、tqdm 4.68.4。
+- FFmpeg 4.2.7 安装成功；严格环境检查通过。
+
+### 视频实验结果
+
+- Run ID：`20260711_T02_001`。
+- 输入：`three-people-walking.mp4`，10.01 秒，240 帧，2160x3840，23.976 FPS，SHA-256 `1dafa388...b0ccd`。
+- 输出目录：`results/mot/three-people-walking/`。
+- 723 个 person 检测，715 条轨迹帧记录，4 个 track_id。
+- ID 1/2/3 各持续 238 帧；ID 4 仅在第 86 帧出现，画面检查确认其对应远处真实儿童，是需要人工处理的单帧短轨/周边漏检问题。
+- 检测 62.291 FPS；DeepSORT 跟踪 31.965 FPS。
+- 最终视频为 H.264/yuv420p、240 帧、10.010 秒；JSONL、MOT 10 列格式、labels 与 metadata 一致性检查通过。
+- 自动输出不是 ground truth，`mot/gt.txt` 只是用户指定的 MOTChallenge 交换文件名。
+
+### 当前风险与异常
+
+- 只进行了抽样视觉检查，尚不能报告 ID Switch、fragmentation、FP、missing 的完整数量。
+- `deep-sort-realtime 1.3.2` 依赖已弃用的 `pkg_resources`，当前通过固定 setuptools 80.9.0 兼容。
+- 系统 `ldconfig` 报告手工 cuDNN 8 文件不是符号链接；本轮未修改，且 PyTorch 使用 wheel 内置 cuDNN 9.1。
+- shell 的 ROS Foxy `PYTHONPATH` 指向 Python 3.8，运行必须继续隔离该变量。
+- APT 更新时无关 `antigravity` 第三方源超时；Ubuntu 镜像和 FFmpeg 安装成功，未修改该源。
+
+### 下一步建议
+
+完整观看 `tracked.mp4` 并按 `MOT_ANNOTATION_PROTOCOL.md` 逐帧记录四类错误，重点复核第 86 帧背景儿童和人物交叉段。人工复核结束前不启动 T03，不把当前结果用于论文指标。
+
 ## 本轮信息
 
 - 日期：2026-07-11（Asia/Shanghai）
