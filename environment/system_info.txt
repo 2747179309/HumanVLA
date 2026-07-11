@@ -1,0 +1,101 @@
+HumanVideo2VLA system audit
+Audit date: 2026-07-11 (Asia/Shanghai)
+Project root: /home/a531/HumanVLA
+Audit mode: read-only; no packages or system settings changed
+
+=== Operating system ===
+Command: cat /etc/os-release
+Result: Ubuntu 20.04.6 LTS (Focal Fossa)
+
+Command: uname -a
+Result: Linux a531-X99 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 GNU/Linux
+
+=== CPU and memory ===
+Command: lscpu
+Result: Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz; 1 socket; 14 cores; 28 logical CPUs; x86_64
+
+Command: free -h
+Result: 31 GiB RAM total; 24 GiB available at audit time; 2.0 GiB swap total
+
+=== GPU and NVIDIA driver ===
+Command: nvidia-smi (run outside restricted sandbox for device access)
+Result: NVIDIA GeForce RTX 3090; 24576 MiB VRAM; driver 550.144.03; NVIDIA-SMI reports CUDA Version 12.4
+Audit-time state: 850 MiB VRAM in use; 51 C; display processes active
+
+Command: cat /proc/driver/nvidia/version
+Result: NVIDIA UNIX x86_64 Kernel Module 550.144.03; built with GCC 9.4.0
+
+Command: lspci -nnk
+Result: PCI 02:00.0 NVIDIA device 10de:2204; kernel driver in use: nvidia
+
+Note: nvidia-smi initially failed inside the restricted sandbox because it could not communicate with the device. The same command succeeded outside the sandbox. The successful host result above is authoritative for this audit.
+
+=== CUDA and cuDNN ===
+Command: nvcc --version
+Result: CUDA compilation tools release 11.3, V11.3.58
+
+Interpretation: local CUDA Toolkit/nvcc is 11.3. The CUDA 12.4 value from nvidia-smi is the driver's supported CUDA level, not the installed nvcc version.
+
+Command: dpkg-query -W -f='${Package} ${Version}\n' libcudnn8 libcudnn8-dev
+Result: neither libcudnn8 nor libcudnn8-dev was found by dpkg-query
+
+cuDNN status: NOT VERIFIED. No Debian cuDNN package was found, and PyTorch is absent, so a framework-bundled cuDNN version cannot be queried. This does not prove no manually installed cuDNN files exist.
+
+=== Python and Conda ===
+Command: python3 --version
+Result: Python 3.11.5
+
+Command: which python3
+Result: /home/a531/anaconda3/bin/python3
+
+Command: python3 -m pip --version
+Result: pip 23.2.1 from /home/a531/anaconda3/lib/python3.11/site-packages
+
+Command: /home/a531/anaconda3/bin/conda --version
+Result: conda 23.7.4
+
+Command: /home/a531/anaconda3/bin/conda env list
+Result:
+  base       *  /home/a531/anaconda3
+  TensorRT      /home/a531/anaconda3/envs/TensorRT
+  bevfusion     /home/a531/anaconda3/envs/bevfusion
+  rknn230       /home/a531/anaconda3/envs/rknn230
+
+Environment decision: suitable for a new isolated Conda environment named motpose. Do not install MOT dependencies into base or reuse unrelated existing environments.
+
+=== Development and media tools ===
+Command: git --version
+Result: git version 2.25.1
+
+Command: gcc --version
+Result: gcc 9.4.0
+
+Command: cmake --version
+Result: cmake 3.16.3
+
+Command: docker --version
+Result: command not found
+
+Command: docker compose version
+Result: command not found
+
+Command: ffmpeg -version
+Result: command not found
+
+=== Python libraries in current base environment ===
+Command: python3 -c "import cv2; print(cv2.__version__)"
+Result: ModuleNotFoundError: No module named 'cv2'
+
+Command: python3 -c "import torch; ..."
+Result: ModuleNotFoundError: No module named 'torch'
+
+OpenCV status: not installed in current base environment
+PyTorch status: not installed in current base environment
+PyTorch CUDA availability: not testable until an isolated environment is created
+
+=== Storage ===
+Command: df -h /home/a531/HumanVLA
+Result: /dev/nvme0n1p2; 916G total; 577G used; 293G available; 67% used
+
+=== Audit conclusion ===
+The machine is a plausible GPU workstation for the proposed MOT/pose work, and an isolated motpose Conda environment is appropriate. Before any pipeline run, install/verify FFmpeg, PyTorch, OpenCV and the selected DeepSORT integration. CVAT requires Docker installation. OpenPose should be treated as a separate source-build component. GPU framework compatibility and cuDNN must be verified with a short smoke test after installation; they are not yet verified.

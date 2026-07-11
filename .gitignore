@@ -1,0 +1,57 @@
+# Video and model artifacts
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.pt
+*.pth
+*.onnx
+*.engine
+checkpoints/
+
+# Python, tools, and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# IDE and OS-local files
+.DS_Store
+*.swp
+
+# Raw and large intermediate data; keep directory placeholders
+data/raw_videos/*
+!data/raw_videos/.gitkeep
+data/frames/*
+!data/frames/.gitkeep
+data/openpose/raw_json/*
+!data/openpose/raw_json/.gitkeep
+
+# Generated results; explicitly retain the declared directory skeleton
+results/*
+!results/mot/
+!results/openpose/
+!results/figures/
+!results/tables/
+results/mot/*
+results/openpose/*
+results/figures/*
+results/tables/*
+!results/mot/.gitkeep
+!results/openpose/.gitkeep
+!results/figures/.gitkeep
+!results/tables/.gitkeep
+
+# Common large generated artifacts
+data/processed/**/*.npy
+data/processed/**/*.npz
+data/processed/**/*.parquet
+logs/runs/**/*.log
+tools/openpose/
+tools/cvat/
