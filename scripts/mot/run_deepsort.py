@@ -118,8 +118,32 @@ def git_commit() -> str:
 
 
 def track_color(track_id: int) -> tuple[int, int, int]:
-    rng = random.Random(track_id)
-    return tuple(rng.randint(64, 255) for _ in range(3))
+    # Bright BGR colors remain distinguishable over foliage, pavement, and clothing.
+    palette = (
+        (0, 255, 0),
+        (255, 255, 0),
+        (0, 165, 255),
+        (255, 0, 255),
+        (255, 128, 0),
+        (0, 255, 255),
+    )
+    return palette[(track_id - 1) % len(palette)]
+
+
+def draw_outlined_text(
+    cv2: Any,
+    frame: Any,
+    text: str,
+    origin: tuple[int, int],
+    scale: float,
+    color: tuple[int, int, int],
+) -> None:
+    cv2.putText(
+        frame, text, origin, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 5, cv2.LINE_AA
+    )
+    cv2.putText(
+        frame, text, origin, cv2.FONT_HERSHEY_SIMPLEX, scale, color, 2, cv2.LINE_AA
+    )
 
 
 def create_video_writer(cv2: Any, path: Path, fps: float, size: tuple[int, int]) -> tuple[Any, str]:
@@ -287,15 +311,8 @@ def main() -> int:
                     tracks = tracker.update_tracks(detections, frame=frame)
                     tracking_seconds += time.perf_counter() - tracking_start
 
-                    cv2.putText(
-                        frame,
-                        f"frame_index: {frame_index}",
-                        (20, 35),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.8,
-                        (0, 255, 255),
-                        2,
-                        cv2.LINE_AA,
+                    draw_outlined_text(
+                        cv2, frame, f"frame_index: {frame_index}", (20, 35), 0.8, (0, 255, 255)
                     )
                     for track in tracks:
                         if not track.is_confirmed():
@@ -332,15 +349,8 @@ def main() -> int:
                         p2 = (min(width - 1, int(round(x2))), min(height - 1, int(round(y2))))
                         cv2.rectangle(frame, p1, p2, color, 2)
                         text_y = max(25, p1[1] - 8)
-                        cv2.putText(
-                            frame,
-                            f"track_id: {track_id}",
-                            (p1[0], text_y),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.8,
-                            color,
-                            2,
-                            cv2.LINE_AA,
+                        draw_outlined_text(
+                            cv2, frame, f"track_id: {track_id}", (p1[0], text_y), 0.8, color
                         )
 
                     writer.write(frame)
