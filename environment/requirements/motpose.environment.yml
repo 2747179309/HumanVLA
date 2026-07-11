@@ -1,0 +1,7 @@
+name: motpose
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+prefix: /home/a531/anaconda3/envs/motpose
