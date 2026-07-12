@@ -1,0 +1,5 @@
+video_id,start_frame,end_frame,check_item,track_id,result,include_in_main_dataset,note
+three-people-walking,0,239,id_switch,"1;2;3",no_issue,1,三名主要人物全程未发生身份交换
+three-people-walking,0,239,track_fragmentation,"1;2;3",no_issue,1,三名主要人物均未被拆分为多个track_id
+three-people-walking,0,239,missing_track,"1;2;3",no_issue,1,三名主要人物在靠近交叉及画面边缘时未发现明显漏跟踪
+three-people-walking,86,86,false_positive,4,confirmed_false_positive,0,第86帧track_id 4未对应真实人物属于单帧误检

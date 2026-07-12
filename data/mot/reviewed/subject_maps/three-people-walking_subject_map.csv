@@ -1,0 +1,4 @@
+video_id,track_id,subject_id,start_frame,end_frame,role,include_for_pose,note
+three-people-walking,1,P001,0,239,main_subject,1,主要人物
+three-people-walking,2,P002,0,239,main_subject,1,主要人物
+three-people-walking,3,P003,0,239,main_subject,1,主要人物

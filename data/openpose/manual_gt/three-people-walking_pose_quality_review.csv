@@ -1,0 +1,6 @@
+﻿start_frame,end_frame,subject_id,issue_type,severity,description,next_action
+15,19,P001,joint_localization_error,moderate,观察者视角右侧持杯手臂的关键点未完全贴合真实手臂,保留原始结果；在后续骨架质量评价中统计误差，滤波结果另存，不覆盖原始JSON
+43,45,P003,identity_mix_and_limb_connection,severe,人物重叠时，P003观察者视角左侧手臂节点错误连接到P001观察者视角左侧手臂，同时出现不对应真人的额外ambiguous_pose,将受影响骨架标记为无效或歧义并排除下游使用；不得用卡尔曼滤波强行修复跨人物错误连接
+54,61,P001,joint_localization_error,moderate,观察者视角右侧持杯手臂的关键点未完全贴合真实手臂,保留原始结果；后续比较原始与平滑轨迹，不覆盖原始JSON
+188,188,,phantom_pose,moderate,OpenPose在非人物区域生成虚假骨架,保留原始OpenPose输出，在关联后数据中排除该虚假骨架
+207,208,,out_of_scope_pose,low,检测到不属于P001/P002/P003的额外骨架,保持unmatched_pose，不纳入三名主要人物的连续骨架序列

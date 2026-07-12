@@ -1,12 +1,275 @@
 # Codex 工作报告
 
+## Codex CLI自动批准设置（2026-07-12）
+
+- 本机`codex-cli 0.144.1`已不提供`--full-auto`参数。
+- 在`/home/a531/.codex/config.toml`设置`approval_policy = "never"`和`sandbox_mode = "workspace-write"`。
+- `codex --strict-config doctor --summary --ascii`确认配置已加载，显示`restricted fs + restricted network · approval Never`。
+- 保留workspace沙箱，没有启用`danger-full-access`或`--dangerously-bypass-approvals-and-sandbox`。
+- Doctor另报WebSocket/HTTP provider连通性警告，与本次自动批准配置无关。
+
+## T04 人工复核结果整理（2026-07-12）
+
+### CSV与输出
+
+- `three-people-walking_T04_review.csv`：240条逐帧记录，完整覆盖0-239，字段和枚举值有效；与关联JSONL自动状态完全一致。
+- `three-people-walking_pose_quality_review.csv`：5条帧段级质量记录，覆盖19个问题帧，区间无重叠；该文件按设计不是240条逐帧记录。
+- 两份人工CSV均未修改。
+- 新增 `results/association/three-people-walking/manual_review_summary.json`，SHA-256 `ae2916482543af9e9a921a076b4caa8063fd2f24d03d17a38334fb1e20d0fde5`。
+
+### 人工复核统计
+
+- 身份关联错误0帧；P001/P002/P003未发现身份交换。帧2-239的238个可复核帧全部`subject_id_correct=yes`。
+- P001持杯手臂的OpenPose关键点定位误差13帧：15-19、54-61；身份及骨架归属正确。
+- identity mix 3帧：43-45；pose assignment人工判定失败，必须排除出后续平滑和训练数据。
+- 帧46恢复正常。
+- phantom pose 1帧：188。
+- out-of-scope unmatched pose 2帧：207-208。
+- 237帧人工`pass`、3帧`fail`；其余221帧未报告肉眼可见异常。
+
+### 边界与当前问题
+
+- 43-45的跨人物手臂连接没有修复，也不得用滤波强制修复。
+- 15-19、54-61仍有原生局部定位误差，后续若处理必须另存派生结果。
+- 本轮未修改关联JSONL、OpenPose JSON或视频，未运行新实验，未开始T05。
+- 建议提交信息：`docs: finalize T04 human association review`。
+
+## T04 自动骨架-轨迹关联（2026-07-12）
+
+### 状态
+
+- 创建并运行 `scripts/association/associate_pose_to_tracks.py`。
+- 创建并运行独立验证器 `scripts/association/validate_association.py`。
+- 240帧自动关联和格式验证完成，等待用户人工抽查；未宣称T04最终通过，未开始T05。
+
+### 输入路径裁决
+
+- `data/mot/subject_maps/three-people-walking_subject_map.csv` 实际不存在。
+- 自动选择 `data/mot/reviewed/subject_maps/three-people-walking_subject_map.csv`。
+- 人工review CSV没有逐帧修正框；track 1/2/3均为`no_issue`，因此使用`results/mot/three-people-walking/tracks_raw.jsonl`的逐帧框，并以人工subject map过滤。
+- track 4为`confirmed_false_positive`，没有进入关联。
+
+### 输出与结果
+
+- `data/openpose/associated/three-people-walking.jsonl`：726行。
+- `results/association/three-people-walking/summary.json`。
+- `results/association/three-people-walking/association_visualization.mp4`：H.264、2160x3840、240帧。
+- `results/association/three-people-walking/manual_review_template.csv`：20个待复核帧。
+- `logs/runs/T04_POSE_TRACK_ASSOCIATION.md`：完整参数、哈希、命令和异常记录。
+
+真实统计：714/714个现有白名单轨迹实例自动匹配，matched rate 1.0；unmatched track 0，unmatched pose 8，ambiguous pose 3，phantom pose 1。P001/P002/P003各有238个matched frame。平均match cost 0.173401，最大0.417309，均低于0.5阈值。
+
+独立验证器通过：726个pose逐条回查raw JSON一致，raw confidence包括大于1的值均未修改；同帧subject无重复；六个异常帧状态正确；raw目录哈希保持`c174f901...f0a8f`。
+
+### 当前风险
+
+- matched rate的分母是714个实际track实例。帧0-1没有DeepSORT confirmed track，对应6副pose保留为unmatched。
+- 43-45帧虽然各自动匹配3个主人物pose，但P003/P001处于全视频低分区域，identity mix仍需人工确认。
+- 188、207、208的额外pose已按人工规则自动隔离，但仍应在可视化中确认。
+- 自动验证仅证明格式、一致性和约束执行，不证明身份关联人工正确。
+
+### 真实命令
+
+```bash
+env -u PYTHONPATH /home/a531/anaconda3/envs/motpose/bin/python \
+  scripts/association/associate_pose_to_tracks.py \
+  --video-id three-people-walking --iou-weight 0.6 \
+  --center-distance-weight 0.4 --cost-threshold 0.5 \
+  --run-id 20260712_T04_001
+
+env -u PYTHONPATH /home/a531/anaconda3/envs/motpose/bin/python \
+  scripts/association/validate_association.py \
+  --association-jsonl data/openpose/associated/three-people-walking.jsonl \
+  --summary results/association/three-people-walking/summary.json \
+  --pose-json-dir results/openpose/three-people-walking/raw_json \
+  --subject-map data/mot/reviewed/subject_maps/three-people-walking_subject_map.csv \
+  --manual-review-summary results/openpose/three-people-walking/manual_review_summary.json \
+  --visualization results/association/three-people-walking/association_visualization.mp4 \
+  --manual-review-template results/association/three-people-walking/manual_review_template.csv \
+  --expected-frames 240
+```
+
+## T03 人工复核收尾（2026-07-12）
+
+### 状态与文件
+
+- 人工 CSV 字段、数据类型、6 个唯一帧和必填文本均有效，未修改用户判断。
+- 新增 `results/openpose/three-people-walking/manual_review_summary.json`。
+- 更新 `logs/runs/T03_OPENPOSE_SMOKE_TEST.md` 和 `tasks/CODEX_REPORT.md`。
+- 按项目规则将用户确认的收尾处置记录为 `tasks/DECISIONS.md` D021。
+- 未修改 raw JSON，未开始 T04。
+
+### 人工结论
+
+- 视觉骨架异常帧共 6 帧，不是 79 帧。
+- 43、44、45：重叠造成 `identity_mix`，收尾标记 `ambiguous_pose`；保留人工决定 `needs_recheck`，不强制修复。
+- 188：非人物区域 phantom，保留人工决定 `exclude_extra_pose`，下游排除额外骨架。
+- 207、208：远处真实人物但无对应 DeepSORT 轨迹，标记 `unmatched_pose`；保留人工决定 `keep_raw_exclude_main`，不纳入三名主要人物数据。
+- 79 帧的 101 个 confidence 大于 1 是独立数值范围警告，不等同于视觉异常；原值保持不变。
+
+### Raw 完整性
+
+- 240 个 JSON，帧号连续 0-239，0 个解析/结构/75 长度错误。
+- 每帧人数与 `summary.json` 一致；6 个人工异常帧均有 4 个 pose 记录。
+- raw 目录聚合 SHA-256 为 `c174f901c73646b64b3f4a4ebbf3bb99c41534405324757e951a2449b14f0a8f`，按排序后的 `filename + NUL + raw bytes` 计算。
+
+### 验收判断与未解决项
+
+- T03 验收材料齐全，可以提交 Claude 验收。
+- `summary.json` 仍如实记录严格验证 `false`，唯一原因是当前协议 `[0,1]` 与 OpenPose 原生 1.0002-1.03636 数值不一致；需 Claude 裁决是否作为带警告的协议例外。
+- 43-45 的姿态归属仍有歧义且未修复；188、207、208 的额外 pose 需要在未来下游处理中按人工决定排除，但本轮没有执行关联或过滤。
+
+### 执行核对
+
+```bash
+python -c "检查人工 CSV 字段、类型、唯一帧和必填值"
+python -c "全量解析 240 个 raw JSON，并交叉检查 summary.json"
+sha256sum data/openpose/manual_gt/three-people-walking_visual_review.csv \
+  results/openpose/three-people-walking/summary.json \
+  results/openpose/three-people-walking/suspicious_frames.csv
+python -c "验证 manual_review_summary.json 与人工 CSV 决定一致"
+```
+
+## T02 人工结论修订与重新验收（2026-07-12）
+
+- 用户最终确认：第 86 帧 `track_id 4` 没有对应真实人物，是单帧 False Positive，raw conf=`0.343935`（约 `0.344`）。
+- raw DeepSORT 五个输出文件保持原样，SHA-256 与 T02 日志记录一致。
+- `data/mot/reviewed/three-people-walking.csv` 已验证：ID 4 为 `confirmed_false_positive`，`include_in_main_dataset=0`。
+- subject map 已验证：仅包含 `1->P001`、`2->P002`、`3->P003`；ID 4 没有 `subject_id`。
+- reviewed CSV SHA-256 为 `85c2261629156b8cd673d010882d25e9219ed812d7909cced375b57eb58b0643`；subject map SHA-256 为 `5d451ef1cc3dbbeccc4d200dd5b8b996f98daa7e6a110c0fd344406642a79dbb`。
+- 下游排除规则：OpenPose 关联和数据集生成仅使用 subject map 中 `include_for_pose=1` 的 ID 1/2/3，禁止关联或导出 ID 4。
+- T02 自动输出、人工复核和 subject map 重新验收通过，T02 关闭。本轮未运行任何新实验，也未启动 OpenPose。
+
+## 日终核对（2026-07-11 18:47 CST）
+
+### 核对范围
+
+本轮响应用户“停止新工作”的要求，只读取并核对 Git、环境、最终 T02 文件、metadata、哈希和已有日志；没有安装软件、执行新实验、修改脚本或覆盖实验结果。
+
+### 真实文件状态
+
+- 最终结果目录：`results/mot/three-people-walking/`，包含用户要求的 5 个输出文件。
+- `tracked.mp4`：48,385,300 字节，H.264/yuv420p，2160x3840，23.976 FPS，240 帧，10.010010 秒。
+- `tracks_raw.jsonl`：132,968 字节，715 行。
+- `mot/gt.txt`：47,663 字节，715 行；仍是自动预标注而非真值。
+- `mot/labels.txt`：56 字节，5 行。
+- `metadata.json`：2,539 字节；指标、环境、输入哈希和代码提交与 Run 日志一致。
+- 原视频 SHA-256：`1dafa3880927509e0549c16f8657f0af89498bf2f67a47c006f99e5b648b0ccd`。
+- YOLO 权重 SHA-256：`f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36`。
+
+### 今日提交与工作树
+
+- Git 提交链：`27b4c34` -> `3946e06` -> `29cda6e` -> `3411faf` -> `8235143`。
+- 当前 HEAD：`8235143` (`docs: record T02 MOT smoke test`)。
+- 当前未提交且非本轮收尾产生的任务文档：`tasks/CLAUDE_REPORT.md`、`tasks/CLAUDE_REVIEW.md`、`tasks/CURRENT_TASK.md`、`tasks/DECISIONS.md`、`tasks/TASK_QUEUE.md`。
+- 当前未跟踪且非本轮收尾产生的文件：`tasks/T02_ACCEPTANCE_CRITERIA.md`。
+- 本轮收尾修改：`logs/daily/2026-07-11.md`、`logs/runs/T02_MOT_SMOKE_TEST.md`、`tasks/CODEX_REPORT.md`。
+- 本轮核对期间，并行进程在 `logs/daily/2026-07-11.md` 追加了“Claude 第二轮审查”和“明天任务”，同时更新 `tasks/CLAUDE_REVIEW.md`；Codex 未改写这些段落。提交 daily log 时这些并行内容会一同进入提交，需先人工确认。
+
+### 未解决问题
+
+1. T02 自动流水线和人工 MOT 复核已经完成，reviewed CSV 与 subject map 已重新验收。
+2. 第 86 帧 `track_id 4` 已人工确认为单帧 False Positive，必须从下游处理排除。
+3. 已有 `track_id -> subject_id` 映射，但尚无公开 MOT 指标。
+4. DeepSORT 旧依赖、系统 cuDNN 8 链接警告、ROS Python 3.8 `PYTHONPATH` 污染和无关 APT 源超时仍存在。
+5. 原视频、模型权重和结果目录被 Git 忽略；当前可复现性依赖环境锁定文件、metadata 和 SHA-256，而非仓库内结果二进制。
+6. 工作树包含多份并行任务文档修改，提交前必须逐项审阅，避免把互相矛盾的任务状态一起提交。
+
+### 建议 Git 提交方式
+
+人工确认 daily log 中的并行 Claude 段落后，仅提交三份收尾日志，避免夹带其他任务文档：
+
+```bash
+git add logs/daily/2026-07-11.md logs/runs/T02_MOT_SMOKE_TEST.md tasks/CODEX_REPORT.md
+git commit -m "docs: finalize 2026-07-11 T02 records"
+```
+
+随后单独审查 `tasks/` 中的并行修改，再决定是否用独立提交，例如 `docs: align T02 task and acceptance criteria`。在审查完成前不建议执行 `git add .`。
+
+## T03 执行更新（2026-07-12）
+
+### 状态
+
+- OpenPose BODY_25 CUDA 构建成功，RTX 3090 单帧和 240 帧视频运行成功。
+- 规定输出完整，渲染视频全片解码通过。
+- 严格 JSON 验证未通过：原始 OpenPose 输出有 101 个置信度值大于 1，最大 1.03636，违反当前协议 `[0,1]` 约束。
+- raw JSON 保持原样；未关联 DeepSORT ID，未开始 T04、动作标注或训练。
+
+### 新建文件
+
+- `environment/requirements/openpose-build.txt`
+- `scripts/openpose/run_openpose.sh`
+- `scripts/openpose/validate_openpose_json.py`
+- `logs/runs/T03_OPENPOSE_SMOKE_TEST.md`
+- `results/openpose/three-people-walking/raw_json/`（240 个自动输出 JSON，Git 忽略）
+- `results/openpose/three-people-walking/rendered.mp4`（Git 忽略）
+- `results/openpose/three-people-walking/rendered_openpose.avi`（中间件，Git 忽略）
+- `results/openpose/three-people-walking/metadata.json`（Git 忽略）
+- `results/openpose/three-people-walking/summary.json`（Git 忽略）
+- `results/openpose/three-people-walking/human_spot_check.md`（Git 忽略）
+
+### 修改文件
+
+- `logs/daily/2026-07-12.md`：追加 T03 真实执行摘要。
+- `tasks/CODEX_REPORT.md`：本节。
+
+### 执行命令
+
+主要命令如下；完整 CMake 参数、失败重试和日志路径见 `logs/runs/T03_OPENPOSE_SMOKE_TEST.md` 与 `environment/requirements/openpose-build.txt`。
+
+```bash
+sudo apt-get install -y libprotobuf-dev protobuf-compiler libleveldb-dev \
+  libsnappy-dev liblmdb-dev libatlas-base-dev
+git clone --recursive https://github.com/CMU-Perceptual-Computing-Lab/openpose.git tools/openpose
+cmake -S tools/openpose -B tools/openpose/build [记录中的 CUDA/cuDNN/sm_86 参数]
+cmake --build tools/openpose/build --parallel 8
+scripts/openpose/run_openpose.sh --video data/raw_videos/three-people-walking.mp4 \
+  --output-dir results/openpose/three-people-walking \
+  --openpose-root tools/openpose --net-resolution "-1x368" \
+  --number-people-max 6 --gpu 0
+/home/a531/anaconda3/envs/motpose/bin/python \
+  scripts/openpose/validate_openpose_json.py [T03 日志中的完整参数]
+ffmpeg -v error -i results/openpose/three-people-walking/rendered.mp4 -f null -
+```
+
+### 环境检查结果摘要
+
+- RTX 3090 24 GiB，NVIDIA 驱动 550.144.03；GPU 运行成功。
+- 项目 CUDA Toolkit 11.3、cuDNN 8.6.0、GCC 9.4.0、CMake 3.16.3。
+- OpenPose commit `5c5d96523ef917bd30301245fdc8343937cae48d`；Caffe Ampere commit `1807aadafc934a2a1341021620981cb1ec526b83`。
+- BODY_25 模型 MD5 `78287b57cf85fa89c03f1393d368e5b7`，与官方 CMake 声明一致。
+- 没有修改 NVIDIA 驱动、系统 CUDA 或系统 Python。
+
+### 真实结果
+
+- 240 个 JSON，0 个解析异常，0 个长度异常，0 个无骨架帧。
+- 234 帧检测 3 人，6 帧检测 4 人；总计 726 个 person 实例。
+- 平均 3.025 人/帧，平均 24.177686 个有效关键点/实例。
+- 肩、肘、腕组缺失率分别为 0.550964%、0.964187%、1.515152%。
+- OpenPose 处理 34.37 秒，约 6.983 FPS。
+- `rendered.mp4` 为 H.264、2160x3840、23.976 FPS、240 帧，FFmpeg 全片解码无错误。
+- 严格验证 `false`：101 个置信度值在 1.0002-1.03636，涉及 79 帧、96 个 person 记录。
+
+### 当前风险
+
+- 当前协议把置信度限定为 `[0,1]`，但本次官方 OpenPose/CUDA 原始输出存在少量大于 1 的分数；在协议决定前不得静默裁剪或宣称验证通过。
+- 帧 43、44、45、188、207、208 出现第 4 个低完整度骨架，需人工判断为背景人物、重复碎片或 phantom。
+- OpenPose 使用非商业学术许可证；未来若涉及商业用途，需要另行核查许可。
+- `people` 数组顺序不是身份，T03 结果尚不能直接映射到 P001-P003。
+
+### 下一步建议和需要确认
+
+- 可将完整输出提交人工检查，重点复核 6 个四人帧、腕部遮挡与左右方向。
+- 需要用户决定协议如何保存和解释 OpenPose 原生大于 1 的置信度分数；在决定前 T03 不标记为严格验收通过。
+- 本轮不启动 T04，也不修改 raw JSON。
+
 ## T02 执行更新（2026-07-11）
 
 ### 状态
 
 - `motpose` 环境、代码、严格环境检查和单段本地视频自动 smoke test 已完成。
 - 视频格式和数据一致性检查通过；只做了 10 个整秒帧及第 86、120 帧的抽样可视检查。
-- T02 尚未完成全视频人工 ID Switch、断轨、误检、漏检复核，因此不标记为 `COMPLETED`。
+- T02 人工复核文件和 subject map 已由用户最终确认并重新验收，T02 可标记为 `COMPLETED`。
 - 未安装 OpenPose、Docker 或 CVAT，未开始 T03。
 
 ### 新建文件
@@ -54,14 +317,14 @@ env -u PYTHONPATH YOLO_CONFIG_DIR=/tmp /home/a531/anaconda3/envs/motpose/bin/pyt
 - 输入：`three-people-walking.mp4`，10.01 秒，240 帧，2160x3840，23.976 FPS，SHA-256 `1dafa388...b0ccd`。
 - 输出目录：`results/mot/three-people-walking/`。
 - 723 个 person 检测，715 条轨迹帧记录，4 个 track_id。
-- ID 1/2/3 各持续 238 帧；ID 4 仅在第 86 帧出现，画面检查确认其对应远处真实儿童，是需要人工处理的单帧短轨/周边漏检问题。
+- ID 1/2/3 各持续 238 帧；raw 中 ID 4 仅在第 86 帧出现，人工最终确认其没有对应真实人物，是 `confirmed_false_positive`。
 - 检测 62.291 FPS；DeepSORT 跟踪 31.965 FPS。
 - 最终视频为 H.264/yuv420p、240 帧、10.010 秒；JSONL、MOT 10 列格式、labels 与 metadata 一致性检查通过。
 - 自动输出不是 ground truth，`mot/gt.txt` 只是用户指定的 MOTChallenge 交换文件名。
 
 ### 当前风险与异常
 
-- 只进行了抽样视觉检查，尚不能报告 ID Switch、fragmentation、FP、missing 的完整数量。
+- 人工复核 CSV 记录 ID 1/2/3 的 id_switch、fragmentation、missing 均为 `no_issue`，ID 4 为唯一 `confirmed_false_positive`。
 - `deep-sort-realtime 1.3.2` 依赖已弃用的 `pkg_resources`，当前通过固定 setuptools 80.9.0 兼容。
 - 系统 `ldconfig` 报告手工 cuDNN 8 文件不是符号链接；本轮未修改，且 PyTorch 使用 wheel 内置 cuDNN 9.1。
 - shell 的 ROS Foxy `PYTHONPATH` 指向 Python 3.8，运行必须继续隔离该变量。
@@ -69,7 +332,7 @@ env -u PYTHONPATH YOLO_CONFIG_DIR=/tmp /home/a531/anaconda3/envs/motpose/bin/pyt
 
 ### 下一步建议
 
-完整观看 `tracked.mp4` 并按 `MOT_ANNOTATION_PROTOCOL.md` 逐帧记录四类错误，重点复核第 86 帧背景儿童和人物交叉段。人工复核结束前不启动 T03，不把当前结果用于论文指标。
+保留 raw 输出；后续 OpenPose 关联和数据集生成仅允许使用 subject map 中的 P001/P002/P003，并排除 ID 4。本轮不启动新实验，当前单视频结果仍不作为公开 MOT 论文指标。
 
 ## 本轮信息
 

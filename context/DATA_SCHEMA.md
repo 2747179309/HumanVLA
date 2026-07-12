@@ -51,6 +51,8 @@ OpenPose BODY_25 必须严格保存为 `25 x 3`：
 - 原始跟踪输出：`data/mot/raw/<video_id>/`。
 - 人工复核轨迹：`data/mot/reviewed/<video_id>/`。
 - 人物映射：`data/mot/subject_maps/<video_id>.csv`，至少包含 `video_id,track_id,subject_id,valid_from_frame,valid_to_frame,reviewer,annotation_version`。
+- 人工确认的 False Positive 必须保留在 reviewed 记录中，状态为 `confirmed_false_positive`，不得分配 `subject_id`。
+- OpenPose 关联和数据集生成必须以人工 subject map 为白名单，并仅处理 `include_for_pose=1` 的轨迹；未出现在 subject map 中的 raw `track_id` 必须排除。
 - BODY_25 原始输出：`data/openpose/raw_json/<video_id>/`，只读保留。
 - 身份关联骨架：`data/openpose/associated/<video_id>.jsonl`。
 - 人工骨架真值：`data/openpose/manual_gt/<video_id>/`。

@@ -55,3 +55,118 @@ data/processed/**/*.parquet
 logs/runs/**/*.log
 tools/openpose/
 tools/cvat/
+
+# =========================
+# Python / IDE
+# =========================
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.cache/
+.vscode/
+.idea/
+.venv/
+venv/
+env/
+
+# =========================
+# Secrets
+# =========================
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*credentials*
+*token*
+*secret*
+
+# =========================
+# Model weights
+# =========================
+*.pt
+*.pth
+*.onnx
+*.engine
+*.caffemodel
+
+# =========================
+# Raw videos and Kinect data
+# =========================
+*.mkv
+*.mp4
+*.avi
+*.mov
+
+data/raw_videos/*
+data/frames/*
+
+data/azure_kinect/raw_mkv/*
+data/azure_kinect/color/*
+data/azure_kinect/depth/*
+data/azure_kinect/imu/*
+
+# =========================
+# Large generated outputs
+# =========================
+data/openpose/raw_json/*
+results/**/raw_json/*
+results/**/*_opencv.mp4
+results/**/*.mp4
+
+# =========================
+# Third-party builds
+# =========================
+tools/openpose/
+tools/cvat/
+build/
+cmake-build-*/
+
+# =========================
+# Temporary files
+# =========================
+*.log
+*.tmp
+*.bak
+.DS_Store
+
+# 原始视频
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+
+# Azure Kinect原始数据
+data/azure_kinect/raw_mkv/
+data/azure_kinect/color/
+data/azure_kinect/depth/
+data/azure_kinect/imu/
+
+# 普通视频和抽帧
+data/raw_videos/
+data/frames/
+
+# 自动生成的视频
+results/**/*.mp4
+results/**/*.avi
+results/**/*.mov
+
+# OpenPose大量逐帧原始JSON，可按需求排除
+results/openpose/**/raw_json/
+data/openpose/raw_json/
+
+# 模型和编译文件
+*.pt
+*.pth
+*.onnx
+*.engine
+*.caffemodel
+tools/openpose/
+build/
+
+!data/raw_videos/.gitkeep
+!data/azure_kinect/raw_mkv/.gitkeep
+!data/azure_kinect/color/.gitkeep
+!data/azure_kinect/depth/.gitkeep

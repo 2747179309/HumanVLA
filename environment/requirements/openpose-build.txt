@@ -1,0 +1,51 @@
+OpenPose T03 build record
+Date: 2026-07-12
+
+Repository: https://github.com/CMU-Perceptual-Computing-Lab/openpose.git
+OpenPose commit: 5c5d96523ef917bd30301245fdc8343937cae48d
+Caffe commit selected for CUDA 11/Ampere: 1807aadafc934a2a1341021620981cb1ec526b83
+License: OpenPose non-commercial academic license; commercial use requires a separate license.
+
+Toolchain:
+- Ubuntu 20.04.6 LTS
+- NVIDIA driver 550.144.03; RTX 3090
+- project-local CUDA Toolkit 11.3; cuDNN 8.6.0
+- GCC 9.4.0; CMake 3.16.3
+- CUDA architecture: sm_86
+
+System packages installed for this build:
+- libprotobuf-dev
+- protobuf-compiler
+- libleveldb-dev
+- libsnappy-dev
+- liblmdb-dev
+- libatlas-base-dev
+
+Effective CMake options:
+- GPU_MODE=CUDA
+- CUDA_TOOLKIT_ROOT_DIR=/home/a531/CUDA11.3.0
+- CUDNN_INCLUDE=/home/a531/CUDA11.3.0/include
+- CUDNN_LIBRARY=/home/a531/CUDA11.3.0/lib/libcudnn.so
+- USE_CUDNN=ON
+- CUDA_ARCH=Manual; CUDA_ARCH_BIN=8.6
+- BUILD_PYTHON=OFF; BUILD_EXAMPLES=ON
+- DOWNLOAD_BODY_25_MODEL=OFF after separately verified download
+- DOWNLOAD_BODY_COCO_MODEL=OFF; DOWNLOAD_BODY_MPI_MODEL=OFF
+- DOWNLOAD_FACE_MODEL=OFF; DOWNLOAD_HAND_MODEL=OFF
+
+BODY_25 model:
+- File: tools/openpose/models/pose/body_25/pose_iter_584000.caffemodel
+- Size: 104715850 bytes
+- MD5: 78287b57cf85fa89c03f1393d368e5b7 (matches OpenPose CMakeLists.txt)
+- SHA-256: 44e3d7ebd8c8b62d4366d67127f1b562611a9e8fd0f4f3cdeeb4bb4a6ed12be6
+
+Build logs:
+- logs/runs/T03_OPENPOSE_CMAKE.log: CUDA include discovery failed.
+- logs/runs/T03_OPENPOSE_CMAKE_RETRY1.log: CUDA include discovery failed; cuDNN found.
+- logs/runs/T03_OPENPOSE_CMAKE_RETRY2.log: CUDA/cuDNN found; official SNU model server hung.
+- logs/runs/T03_OPENPOSE_CMAKE_RETRY3.log: face/hand defaults attempted unavailable downloads.
+- logs/runs/T03_OPENPOSE_CMAKE_RETRY4.log: configuration succeeded with only BODY_25 enabled.
+- logs/runs/T03_OPENPOSE_BUILD.log: Caffe configure required libatlas-base-dev.
+- logs/runs/T03_OPENPOSE_BUILD_RETRY1.log: final retry log.
+
+No NVIDIA driver, system CUDA toolkit, or system Python was modified.

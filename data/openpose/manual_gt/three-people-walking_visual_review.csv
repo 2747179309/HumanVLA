@@ -1,0 +1,8 @@
+frame_index,visible_people,detected_poses,issue_type,main_three_complete,identity_mix,persistent,decision,note
+188,3,4,phantom,1,0,0,exclude_extra_pose,OpenPose将非人物区域错误识别为骨架
+207,4,4,real_background_person,1,0,1,keep_raw_exclude_main,OpenPose检测到远处坐着的真实人物，但DeepSORT未建立对应轨迹
+208,4,4,real_background_person,1,0,1,keep_raw_exclude_main,OpenPose检测到远处坐着的真实人物，但DeepSORT未建立对应轨迹
+43,3,4,identity_mix,0,1,1,needs_recheck,右侧两名人物发生重叠，OpenPose骨架粘连并产生额外混合骨架
+44,3,4,identity_mix,0,1,1,needs_recheck,右侧两名人物持续重叠，骨架关键点在两人之间发生串联
+45,3,4,identity_mix,0,1,1,needs_recheck,人物分离前骨架仍存在粘连，额外骨架无法可靠分配给单一人物
+
