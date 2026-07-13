@@ -1,0 +1,8 @@
+review_stage,target_frame_range,issue_detected,qc_status,action_taken
+K02_Review,1-240,Systemic geometric offset (projection error) of skeleton points,FAILED,"Documented error; data is consolidate-ready but requires caution in use"
+K02_Review,35-36,None,PASSED,None
+K02_Review,39-40,Minor jitter,PASSED,None
+K02_Review,48-49,None,PASSED,None
+K02_Review,62-63,None,PASSED,None
+K02_Review,103-104,None,PASSED,None
+K02_Review,204-205,Minor occlusion,PASSED,None
