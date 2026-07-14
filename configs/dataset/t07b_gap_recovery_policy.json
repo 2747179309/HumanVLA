@@ -1,0 +1,55 @@
+{
+  "policy_version": "t07b_policy_v1.0.0",
+  "frozen_before_benchmark": true,
+  "video_id": "pick_place_pilot_v1_E001",
+  "fps": 30.0,
+  "synthetic_selection": {
+    "context_frames_each_side": 2,
+    "strategy": "deterministic_closest_to_phase_center",
+    "exclude_real_missing_frames": [64, 65, 143, 182, 183, 184, 185],
+    "exclude_manual_labels": ["occlusion_error", "normalization_artifact"],
+    "required_phases_by_gap_length": {
+      "1": ["reach", "align", "grasp", "lift", "transport", "place", "release", "retract"],
+      "2": ["reach", "align", "grasp", "lift", "transport", "place", "release", "retract"],
+      "3": ["reach", "transport", "place"],
+      "4": ["reach", "transport", "place"]
+    },
+    "allow_masked_frame_reuse_across_different_samples": true,
+    "reason_for_reuse": "E001 place has limited reliable frames after excluding reviewed corruption and real missing intervals; samples are independent tests and no model is trained."
+  },
+  "methods": {
+    "ranking_methods": ["linear", "pchip", "cubic_hermite", "kalman_cv_smoothing"],
+    "diagnostic_methods": ["kalman_cv_prediction"],
+    "kalman_cv": {
+      "state": ["x", "y", "vx", "vy"],
+      "dt_frames": 1.0,
+      "process_covariance_diagonal": [0.0001, 0.0001, 0.001, 0.001],
+      "observation_covariance_diagonal": [0.0001, 0.0001],
+      "initial_covariance_diagonal": [0.001, 0.001, 0.01, 0.01],
+      "prediction_pass_uses_post_gap_observation": false,
+      "smoothing_pass_uses_post_gap_observation": true
+    }
+  },
+  "selection_rule": {
+    "scope": "provisional best on E001 only",
+    "primary": "mean RWrist RMSE_norm across all selected synthetic gaps",
+    "primary_tie_band_relative": 0.1,
+    "secondary": "mean RWrist jerk_error_norm_per_s3 plus mean RWrist entry_velocity_discontinuity_norm_per_s",
+    "tertiary": "mean RElbow RMSE_norm",
+    "final_tie_break": "lexicographic method name",
+    "no_parameter_retuning_after_results": true
+  },
+  "actual_repair": {
+    "gaps": [[64, 65], [143, 143], [182, 185]],
+    "joint": "RWrist",
+    "exclude_manual_error_context": true,
+    "repair_confidence_by_gap_length": {"1": "high", "2": "medium", "4": "low"},
+    "max_allowed_single_frame_displacement_shoulder_width": 0.5,
+    "frame_0_1_repair_forbidden": true
+  },
+  "processing": {
+    "interpolation_only_inside_declared_gaps": true,
+    "smoothing_filter_applied_to_observed_frames": false,
+    "raw_fields_overwritten": false
+  }
+}

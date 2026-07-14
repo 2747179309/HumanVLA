@@ -1,5 +1,262 @@
 # Codex 工作报告
 
+## T07C-B3传统轨迹优化基线（2026-07-14）
+
+- 编码前完成算法教学说明；只实现no-processing、SG、因果One Euro、因果Kalman CV和仅使用OpenPose confidence的confidence-weighted Kalman，没有启动B4质量感知方法。
+- 预注册配置哈希`0815fe96...db16`；冻结B2 split为168/72/96且未重建。共47个候选，train只作开发诊断，全部候选由val评分选参。
+- validation选择SG(window 7/order 2)、One Euro(5Hz/beta 0)、Kalman CV(q=8/r=0.005)和confidence-weighted Kalman(q=8/r0=0.005/gamma=1)。选参文件在test前记录配置、数据和raw轨迹哈希。
+- test只运行一次：96样本×5方法=480条；全部split输出336×5=1680条且唯一。主指标penalized corrupted RMSE norm为SG 0.058489、One Euro 0.062395、confidence-weighted Kalman 0.081717、Kalman CV 0.082074、no-processing 0.328990。
+- SG主误差最低但clean displacement最高(0.022568)；Kalman CV最保护clean region(0.008250)。One Euro在continuous drift上最低；没有方法在所有指标绝对最优。
+- missing没有替换为0。no-processing short-missing正式位置/最大/导数指标为空，另用预注册1.0 penalty及coverage 0.927083显式记录失败。phase-boundary shift因B2窗口均为单phase而全部not applicable，不伪造为0。
+- `py_compile`、三个`--help`、1680输出唯一性、480 test完整性、240完整分组、PNG、输入哈希与filter-input leakage检查全部通过。报告语义修正仅重建CSV/JSON/PNG，没有重跑算法、test或调参。
+- 新增两份教学文档，包含公式、函数映射、真实`SYN_0263`全过程、参数影响、复现、常见错误和自测问题。当前停止等待B3独立验收，不开始T07C-B4。
+
+## T07C-B2合成污染数据集（2026-07-14）
+
+- 先输出教学实施说明，再按阶段计划只实现B2；没有启动B3传统滤波。
+- 新增预注册配置`configs/dataset/t07c_b2_synthetic_corruption.json`，首次生成前哈希`35785fa...6055`；集中固定seed、clean门槛、时间split、窗口、强度和四类公式。
+- 新增生成器和独立验证器，关键污染函数包含输入/输出/数学定义docstring，必要注释集中在真值筛选、split选择和随机种子处；两个脚本均通过`py_compile`和`--help`。
+- clean truth要求四个参考关节同时为纯raw有效、无repair、无source event且同phase。生成14个clean窗口、336个样本；四类各84，三强度各112，split为168/72/96。
+- 独立验证通过：clean逐点回查raw、污染公式、窗口阶段、24变体/窗口及split源帧零交集全部正确；输入哈希未变化，确定性复跑输出哈希一致。
+- 输出：dataset `ee84857e...24d4e`，metadata `aacde9f1...0666`。
+- 新增263行教学指南，包含数据流图、公式/伪代码、关键函数、真实`SYN_0005`完整实例、运行检查和常见错误。
+- 当前局限：仅E001，split阶段分布不同；不能把后续误差差异直接外推为跨视频结论。当前停止等待B2质量审查，不开始B3。
+
+## T07C-A最终frame-joint mask（2026-07-14）
+
+- 新建`build_frame_joint_corruption_mask.py`和独立验证器，均通过`py_compile`与`--help`。
+- 以用户填写后的CSV哈希`d6a2f289...bac1`为最终人工依据，生成恰好1380行、345×4关节唯一覆盖的mask；人工CSV与raw/repaired/quality输入均未修改。
+- raw、repaired和selected downstream三层独立：50条raw无效；7条accepted RWrist repair有效并被选用；selected source为raw 1339、repaired 7、none 34。
+- 关键语义全部通过独立验证：RWrist 64-65/143/182-185选repaired；RElbow 64-65和RWrist 178-179选none并延期T07C-B；182-185保留boundary warning；RElbow 54-55保留raw和normalization scale warning。
+- 44条记录聚合多个source；RElbow 72-74的mask/downweight差异显式保存为3条action conflict，没有删除任何事件证据。129-143 defer没有被自动改写为mask。
+- 输出哈希：mask `9d9654dc...1b53`，summary `e7246a07...e3bd`，overlay `831489ac...f659`。
+- overlay为H.264、1280x720、30 FPS、345帧，全片解码通过；确定性复跑三项哈希一致。
+- 未过滤、未新增插值、未修改轨迹、未开始T07C-B。当前停止等待Claude验收。
+
+## T07C-A复核视频布局修订（2026-07-14）
+
+- `build_corruption_candidate_review.py`新增`--render-only`，现有候选CSV作为只读输入；只覆盖11个短片、汇总视频和渲染summary。
+- 信息面板从左上角移至底部桌面前沿，改为112像素半透明底栏，仅保留candidate_id、frame、joint、phase、confidence和source label；红色提示也移至底栏。
+- 移除人体附近红色端点圈。视觉抽查确认头部、Neck、双肩、右肘和右腕不再被面板遮挡。
+- 独立验证通过：11个短片编码和帧数保持完整，200帧H.264汇总视频全片解码通过。
+- 候选CSV哈希仍为`474f7c1e...2bef`；raw/repaired trajectory、quality mask、jump review和repair summary哈希全部不变。
+- 新汇总视频哈希`e6d9400e...0d22`，summary哈希`85c97794...003b`。未重跑OpenPose、关联、插值、轨迹计算或滤波。
+
+## T07C-A候选复核材料（2026-07-14）
+
+- 新建`scripts/trajectory/build_corruption_candidate_review.py`和`validate_corruption_review_materials.py`，均支持`--help`并通过`py_compile`。
+- 从8个occlusion error、1个normalization artifact、64-65 RElbow low-quality和182-185 RWrist boundary warning生成11行空白人工复核CSV；3个已判定real motion未重复复核。
+- 生成11个前后各8帧的H.264慢放短片及200帧汇总视频；画面包含raw骨架、raw/repaired轨迹、Neck/肩宽、关节置信度、阶段及from/to。
+- 独立验证通过：11个人工复核字段组均为空、11个片段元数据正确、汇总视频全片解码无错误，输入哈希未变化。
+- 输出：`corruption_candidate_review.csv`哈希`474f7c1e...2bef`；汇总视频`93fd783c...7a3e`；summary `165bd0ef...7911`。
+- 未生成最终1380行`frame_joint_corruption_mask.jsonl`，因为用户要求不得自动决定错误帧或自动mask。当前材料阶段完成，任务等待人工逐帧裁决，不能标记T07C-A最终验收通过。
+- 未修改raw/repaired trajectory、T06C quality mask或T07B summary；未运行过滤、插值、仿真或E002-E012。
+
+## T07B-R1真实缺口人工复核固化（2026-07-14）
+
+- 新建`scripts/trajectory/finalize_t07b_manual_review.py`，支持`--help`和显式`--overwrite`保护；逐关节写入人工复核、接受状态、置信度、下游有效性、备注和延期任务。
+- 审计确认frame 64-65的RElbow是有原始坐标的`low_quality/forearm_self_occlusion`，并非missing。其原始值保持不变，未创建或采用肘部插值；人工状态为fail/rejected、下游无效，延期T07C。
+- RWrist 64-65、143、182-185共7帧全部固化为pass/accepted/high/downstream-valid；182-185保留`boundary_continuity_warning=true`及`7.959980 norm/s`入口速度不连续性。
+- 更新repaired JSONL/CSV和actual summary；自动置信度移至`automatic_repair_confidence`保存，`repair_confidence`改为逐关节人工字段。
+- 扩展独立验证器并通过：345帧完整、CSV/JSONL一致、raw字段不变、人工规则正确、overlay全片解码通过。固化命令幂等复跑输出哈希一致。
+- raw trajectory、T06C quality mask、44样本manifest和benchmark CSV/JSON哈希均未改变；linear仍是`provisional best on E001`，没有改变合成结果或全局排名。
+- 输出哈希：repaired JSONL `4a04a6e...7411`，CSV `f55b38bc...f7b5`，summary `41ddcb4e...d1e1`。
+- 当前状态：T07B-R1已固化，停止等待验收；未开始T07C，未进行新的插值、滤波或候选修复。
+
+## T07B短缺口恢复基准（2026-07-14）
+
+- 新建预注册policy、common module和4个验收脚本；`py_compile`、全部`--help`、独立验证和确定性复跑均通过。
+- 合成样本44个，length 1/2/3/4为16/16/6/6；每关节22个，覆盖全部八个操作阶段，无阶段样本不足、真实缺失/人工错误帧泄漏或模型训练。
+- 比较linear、PCHIP、cubic Hermite、Kalman CV；prediction-only和smoothing分别记录。RWrist mean RMSE_norm分别0.019819/0.022681/0.026315/0.022746，linear是预注册规则下唯一进入10%主指标带的方法。
+- provisional best严格称为`provisional best on E001`。用linear修复RWrist 64-65、143、182-185共7帧；frame 0-1不修复，所有raw字段保持不变。
+- 三段最大单帧位移0.058510/0.149972/0.039001肩宽，均低于0.5阈值；无方法失败或边界阈值异常。182-185入口速度不连续性7.959980 norm/s，列为最高人工复核优先级。
+- 8个occlusion error事件只写入corruption list并延期T07C，候选关节不修复、不删除。修复数据使用独立字段和joint repair mask，observed frame未平滑。
+- 生成benchmark CSV/JSON、PNG、345帧repaired JSONL/CSV、repair summary、corruption list和H.264 overlay；overlay全片解码通过，确定性复跑所有输出哈希一致。
+- raw trajectory、quality mask、T07A review/summary和源视频哈希未变化。当前停止，不开始T07C。
+
+## T07A-R1最小清理（2026-07-14）
+
+- 新建`clean_jump_review_r1.py`并更新finalizer的7类允许标签校验；两个脚本通过`py_compile`和`--help`。
+- JUMP_001改为normalization artifact；JUMP_005保留用户最终occlusion error并具体化右肘遮挡原因；JUMP_010/011统一为occlusion error且备注保留“骨架完全没有在手臂上”。
+- 本轮开始时CSV已由外部更新为规范20列；R1确定性重写并再次验证无空表头、12个review区间和12个实际MP4路径。CSV SHA-256由`d7fc8d4c...e97a`变为`0a40f2a7...c84`。
+- 新统计：normalization artifact 1、occlusion error 8、real motion 3；所有自定义标签已清除，其他允许标签为0，候选总数仍为12。
+- summary已重新固化12项决定与新统计，SHA-256为`03eb5751...3528`；独立一致性检查通过。
+- raw trajectory JSONL/CSV哈希未变化；未修改OpenPose输入、插值、滤波、删除真实/阶段边界/人体代偿运动或修复错误。当前等待Claude最终验收。
+
+## T07A人工裁决最终固化（2026-07-14）
+
+- 新建`finalize_jump_review.py`并通过`py_compile`和`--help`；逐项回查12行候选与summary/raw轨迹，三个manual字段均已填写。
+- 人工标签原样统计：occlusion_error 6、openpose_jitter 1、real_motion 3、自定义“骨架完全没有在手臂上”2；confidence为high 9、medium 3。
+- 关节统计为RElbow 9、RWrist 3；11项同阶段、1项跨阶段边界。所有候选均保留，真实运动、跨阶段运动和人体代偿删除标志均为false。
+- openpose_jitter、occlusion_error和normalization_artifact只记录标记，修复数为0；两项自定义标签按用户原文保留，也未修复或重命名。
+- 用户CSV存在统一的辅助列右移格式，但人工字段与核心候选字段完整。首次严格验证因此停止且未写summary；确认模式后只读接受，未修改CSV。
+- `trajectory_summary.json`已写入12项裁决、分类统计、处理政策和输入哈希；独立一致性检查通过。
+- raw trajectory JSONL哈希保持`c29b2a66...65506`，raw trajectory CSV保持`e2ae2e87...ab2c`；未插值、滤波或开始新实验。当前等待Claude最终验收。
+
+## T07A跳变候选人工复核材料（2026-07-14）
+
+- 新建`scripts/trajectory/build_jump_candidate_review.py`并通过`py_compile`与`--help`；脚本只读summary、轨迹和源视频，已有非空人工结论时拒绝覆盖CSV。
+- 从summary完整读取12个候选：RElbow 9项、RWrist 3项；候选to_frame为55、64、66、68、72、90、138、140、144、178、180、224。
+- 生成12行`jump_candidate_review.csv`，位移、置信度、肩宽、Neck位移和触发原因均来自真实轨迹/summary；三个manual字段全部留空。
+- 生成12个逐候选短片，每项覆盖前后各5帧并包含候选边两端，共12个连续源帧；画面同时显示骨架、绝对像素路径、归一化路径和红色候选位置。
+- 生成H.264汇总视频：1280x720、6 FPS、144帧、24秒。全部短片及汇总视频全片解码通过，JUMP_002/007/010视觉抽查通过。
+- 轨迹JSONL、CSV、summary和源视频哈希未变化；未自动判错、插值、滤波或修改轨迹。当前停止等待人工填写复核CSV。
+
+## T07A人工复核补充（2026-07-14）
+
+- 修正T07A人工语义：异常遮挡帧为143而非43；64-65、143、182-185继续保留RWrist缺失和/或RElbow低质量，未插值。
+- 扩展345帧JSONL/CSV，新增Neck相对首个有效frame 2的x/y位移，以及Neck、RShoulder、LShoulder逐帧dx/dy向量和欧氏像素位移；原有绝对Neck/肩/肘/腕像素和Neck/肩宽归一化坐标同时保留。
+- Neck相对frame 2的dx范围[-7.850,48.933] px、dy范围[-15.651,9.894] px；连续位移均值为Neck 1.229844、RShoulder 1.394922、LShoulder 0.848750 px。
+- 用户确认放置到B点附近的Neck/肩部平移为真实人体代偿；脚本不固定、不修改、不滤除这些坐标，summary明确禁止未来仅使用Neck相对轨迹进行仿真映射。
+- 有效性与肩宽统计保持不变：trajectory 336、RElbow coordinate 343、RWrist 336；肩宽30%规则异常0帧。A/B绝对参考坐标尚未检测或标注，未伪造。
+- `py_compile`、四个`--help`、独立验证和345帧overlay全片解码通过；frame 143/185/226视觉抽查正确。五个T06C锁定输入哈希未变化。
+- T07A派生输出已重生成；12个Tukey候选仍只作为待人工复核项，不自动修复。未执行滤波、插值、纸盒检测、仿真映射或E002-E012处理。
+
+## T07A E001原始右上肢轨迹（2026-07-14）
+
+- 新建`extract_upper_limb_trajectory.py`、`analyze_raw_trajectory.py`、`render_raw_trajectory.py`、`validate_upper_limb_trajectory.py`；全部通过`py_compile`和`--help`。
+- 仅处理`pick_place_pilot_v1_E001`，生成345行JSONL和345条数据行CSV。frame 0-1全部坐标null；RWrist在64、65、143、182-185为null；frame 226只使用P001 pose_index=0。
+- RElbow坐标可用343帧、T06C source-valid 340帧、人工unstable规则后的effective high-quality 336帧；RWrist有效336帧。低质量RElbow raw像素/归一化值保留且标签未提升。
+- 肩宽343帧：mean 165.425559 px、std 7.777305 px、min 143.766790 px、max 180.655606 px；按相邻变化超过全局均值30%的规则，异常0帧。
+- Tukey extreme规则标出12个跳变候选：55、64、66、68、72、90、138、140、144、178、180、224。最大RElbow位移为65→66的0.323281 shoulder-width；最大RWrist位移为137→138的0.358744。
+- reach至retract为frame 46-244；不跨缺失段的归一化路径长度为RElbow 6.526922、RWrist 8.213009，RWrist有10条相邻边因缺失跳过。
+- 输出PNG为2880x1280；overlay为H.264、1280x720、30 FPS、345帧且全片解码通过。独立验证errors为空，公式、null规则、CSV一致性、frame 226和输入哈希全部通过。
+- P001、quality mask、phase frames、T06C validation及源视频哈希未变化。未运行插值、Kalman、One Euro、Savitzky-Golay、纸盒检测、仿真映射、LeRobot或E002-E012。
+- 当前只等待对12个跳变候选进行人工视觉裁决；自动结果不将候选声明为错误，也不自动修复。
+
+## T06C最终人工复核记录（2026-07-13）
+
+- 按用户结论扩展`manual_review.csv`为17条结构化记录：14条joint review和3条pose exclusion/identity policy记录。
+- 新建`apply_t06c_manual_review.py`，将人工结论确定性写入quality mask的25项`manual_joint_status`、`manual_joint_reason`、`manual_joint_confidence`及pose review字段；不覆盖自动观测状态或raw值。
+- frame 64-65：RElbow low_quality/forearm self-occlusion；RWrist missing/hand occludes wrist。frame 143：RElbow同类low quality；RWrist missing/hand and box occlusion。
+- frame 182-185：RElbow记为unstable、RWrist记为missing_or_unstable；原因保留`suspected_`前缀，manual confidence为medium，不声称因果确定。
+- frame 226的额外`pose_index=1`标记`excluded_reflection_artifact/table_reflection_false_positive`；P001的`pose_index=0`及frame_valid未改变，整帧保持valid。
+- joint-level自动missing在确认轨迹帧中为Neck 0、RShoulder 0、RElbow 0、RWrist 7；人工明确确认的RWrist missing为3帧，182-185另列为missing或不稳定。
+- 最终validation summary包含完整manual review结果，`validation_passed=true`且errors为空。帧级统计保持336 valid、7 low_quality、2 missing。
+- 未运行DeepSORT/OpenPose，association SHA-256仍为`345b9e47...5cd`，raw OpenPose目录仍为`b068dc2d...d522c5e`；未插值、滤波或开始后续任务。
+
+## T06C-M1上半身可见范围修正（2026-07-13）
+
+- 未重跑DeepSORT或OpenPose，未修改关联JSONL、原始BODY_25 JSON或动作标签。OpenPose raw目录哈希仍为`b068dc2d...d522c5e`，MOT/subject map/phase/association输入哈希均未变化。
+- 更新`build_upper_body_sequence.py`：345帧每帧新增25项`joint_observation_status`、`joint_valid`和`visibility_reason`。关节0-7、15-18按原始confidence判断；8-14、19-24无条件标记`out_of_frame/false/outside_capture_scope`。
+- 完整25x3 `keypoints_raw`与25项`confidence_raw`保持不变。共1061个固定不可见关节的原始非零confidence被正确保留但强制判为无效。
+- 辅助关节由Nose/LShoulder/MidHip改为Nose/LShoulder/LElbow/LWrist；核心关节仍为Neck/RShoulder/RElbow/RWrist。
+- 更新主overlay，仅绘制可信上半身链和头部可见边；视觉抽查frame 2、45、64、65、100、143、182-185、226、300，未再显示Neck-MidHip、髋、腿或脚部推测骨架。
+- 后续归一化策略记录为Neck原点、肩宽尺度，pelvis-centered normalization在本次拍摄中不可用。
+- 重生成P001、quality mask、joint stats、H.264 345帧overlay和validation summary。独立验证通过，帧级统计保持336 valid、7 low_quality、2 missing。
+- 仍需人工确认frame 226额外`pose_index=1`、frame 64/65/143/182-185及主overlay；未开始滤波、纸盒检测、仿真映射或E002-E012。
+
+## T06C E001感知流水线下游完成（2026-07-13，待人工复核）
+
+- 宿主机OpenPose单帧探针和完整345帧BODY_25均成功；raw JSON为345个、原始pose为346副，344帧1人、frame 226为2人/pose，格式异常0。原始JSON目录哈希在关联前后均为`b068dc2d...d522c5e`。
+- 未重跑DeepSORT。复用343条`track_id=1`轨迹及用户人工确认的P001映射；frame 0-1因`n_init`确认期保持`missing`。
+- 新建`associate_single_operator.py`、`build_upper_body_sequence.py`、`render_pose_phase_overlay.py`、`validate_e001_perception.py`，均通过`py_compile`和`--help`。
+- T04参数阈值0.5试运行只匹配306/343；审计确认是上半身骨架框/完整人物框尺度差异后，将有限拒绝阈值适配为0.6，最终关联343/343，确认轨迹关联率1.0。未匹配pose共3副：frame 0、1以及frame 226的`pose_index=1`。
+- P001质量统计：336 valid、7 low_quality、2 missing；low_quality为64、65、143、182-185，missing为0-1，ambiguous为空。OpenPose原始检出345/345，P001确认身份骨架343/343。
+- 核心关节在确认轨迹帧的`conf>0`有效率：Neck 100%、RShoulder 100%、RElbow 100%、RWrist 97.959%；`conf>=0.3`质量通过率分别为100%、100%、99.125%、97.959%。
+- 生成346行关联JSONL、345行P001合并序列、345行quality mask、核心关节/逐阶段统计和H.264 1280x720/30 FPS/345帧overlay。独立验证通过且视频全量解码成功，动作阶段字段逐帧与T06B一致。
+- 关键边界45-47、96-98、105-107、119-121、138-140、174-176、192-194、205-208、243-246已从overlay视觉抽查，显示的阶段切换与人工标签一致。
+- 当前只等待人工重点检查frame 226的额外残缺pose，以及64、65、143、182-185的核心关节低质量告警；不宣称T06C最终人工验收通过。未处理E002-E012，未滤波、插值、检测纸盒或进行仿真映射。
+
+## T06C宿主机OpenPose运行脚本（2026-07-13）
+
+- 用户确认普通宿主机终端中NVIDIA设备节点完整且`nvidia-smi`正常识别RTX 3090；根因最终确定为Codex受限环境无GPU设备访问，不进行任何驱动、重启或系统配置操作。
+- 新建可执行脚本`scripts/run_t06c_openpose_host.sh`，固定只处理`pick_place_pilot_v1_E001`，只验证并复用现有DeepSORT raw和P001/human_confirmed映射。
+- 脚本先检查`nvidia-smi`和三个必需设备节点，再运行frame 0 BODY_25 CUDA探针；必须同时生成合法75值JSON、操作者检测和渲染图，且四个核心关节不能全部缺失，否则立即停止。
+- 单帧通过后才调用现有OpenPose runner处理完整345帧，并验证0-344 JSON序列、BODY_25长度、原始confidence策略、H.264渲染帧数和可解码性。
+- 默认拒绝已有输出；显式`--overwrite`会归档而非删除旧结果。所有stdout/stderr追加到`logs/runs/T06C_OPENPOSE_HOST_RUN.log`。
+- `bash -n`和`--help`通过；未安装shellcheck。按用户要求，本轮未在Codex环境实际运行OpenPose，也未重跑DeepSORT。
+
+## T06C-R GPU诊断与恢复（2026-07-13）
+
+- 阶段A完整诊断保存于`results/system/T06C_gpu_diagnostic.txt`，分类为G：RTX 3090、550.144.03模块、DKMS、headers和用户态库均存在且版本匹配，但当前运行环境没有`/dev/nvidia*`。
+- Secure Boot未启用；无DKMS/内核不匹配或driver/library mismatch证据。`nvidia-modprobe`未安装。
+- APT模拟确认安装`nvidia-modprobe`只新增1包、升级0、删除0；实际sudo在APT执行前因受限环境的setuid/root能力缺失而失败，没有系统修改。
+- 当前`/dev`与`sudo`所有权显示本进程处于受限命名空间，因此需用户先在主机普通终端运行`ls -l /dev/nvidia*`和`nvidia-smi`；主机同样缺失时再安装并运行`nvidia-modprobe -u -c=0`。
+- Codex环境内`nvidia-smi`和设备节点仍不可用；随后用户确认宿主机终端GPU正常，故不再进行系统恢复。OpenPose改由宿主机脚本执行。
+- 用户已人工确认track 1始终为主操作者，subject map正式更新为P001；frame 0-1继续保持missing。DeepSORT未重跑，既有raw结果未修改。
+
+## T06C E001感知流水线（2026-07-13，部分完成/阻塞）
+
+- Run ID `20260713_T06C_E001_001`。DeepSORT以CPU处理E001全部345帧，产生345个person检测和唯一 `track_id=1`。
+- track 1连续覆盖frame 2-344共343帧、内部缺口0、平均置信度0.754752；frame 0-1为`n_init=3`确认前缺失。七个时刻视觉抽查未发现身份切换。
+- track 1初始临时映射为P001；随后用户人工确认其始终为主操作者，subject map更新为`human_confirmed`。raw结果完整保留，无短track被删除。
+- MOT视频为H.264、1280x720、30 FPS、345帧且完整解码通过。
+- OpenPose阻塞：`nvidia-smi`失败、PyTorch CUDA不可用、`/dev/nvidia*`不存在。BODY_25单帧CPU回退探针仍返回CUDA错误100/退出255，未生成JSON。
+- 因无真实BODY_25输入，未运行关联、质量掩码、骨架动作合并及核心关节统计，也未生成伪造的全missing结果。
+- 完整命令、哈希、错误和未完成指标见 `logs/runs/T06C_E001_PERCEPTION_PIPELINE.md`。未处理E002-E012，未运行滤波、插值、纸盒检测、仿真映射、LeRobot转换或训练。
+
+## T06B E001边界修正版复验（2026-07-13）
+
+- Run ID `20260713_T06B_E001_REVALIDATE_001`。实际输入为 `E001_action_phase_annotations_corrected.csv`；原无后缀路径已不存在，因此先定位修正版后才重建派生结果。
+- 人工边界确认：frame 206为release，207-244共38帧为retract，245-344共100帧为结束idle。
+- 10个区间完整覆盖0-344共345帧；空洞、重叠、越界、非法阶段、错误和警告均为0。
+- 重生成345条frame JSONL、validation summary及H.264 overlay；overlay保持1280×720、30 FPS、345帧、11.5秒并全量解码通过。
+- 修正后统计：retract 38帧/1.266667秒，idle合计146帧/4.866667秒；其他阶段不变。
+- 修正版人工CSV与源视频保持只读。未处理E002-E012，未运行OpenPose、DeepSORT、滤波、LeRobot转换或训练。
+
+## T06B E001人工标签验证（2026-07-13）
+
+- Run ID `20260713_T06B_E001_VALIDATE_001`。人工CSV含10个区间，完整覆盖0-344共345帧；空洞0、重叠0、越界0、非法阶段0，双语文本检查通过。
+- 新建 `validate_labels.py`、`expand_frame_labels.py` 和 `render_labels.py`，均通过 `py_compile` 和 `--help`；未声称T06A其余4个工具已实现。
+- 从人工区间确定性导出345条frame JSONL，独立逐条回查segment、phase、双语文本和时间戳全部一致，未推测或修改人工标签。
+- 生成H.264双语overlay：1280×720、30 FPS、345帧、11.5秒；完整解码通过，抽查全部阶段切换首帧及末帧显示正确。
+- 阶段帧数：idle 177、reach 52、align 9、grasp 14、lift 19、transport 36、place 18、release 13、retract 7；其余扩展阶段为0。
+- 源视频和人工CSV哈希未变化。未处理E002-E012，未运行OpenPose、DeepSORT、滤波、LeRobot转换或训练。
+
+## T06B E001第一阶段（2026-07-13）
+
+- 仅审计 `P01_BOX01_R_A_B_E001_S.mp4`：HEVC、1280×720、30 FPS、345帧、11.5秒；FFmpeg全量解码345/345帧无错误。
+- 将唯一E001记录写入 `data/action_labels/video_manifest.csv`，源文件SHA-256为 `c29458c...745a2`，处理前后未变化。
+- 生成18字段、仅表头、0条阶段记录的人工标注CSV；未自动推测任何动作阶段。
+- 生成H.264预览视频，保持1280×720、30 FPS、345帧、11.5秒；全量解码通过，抽查帧172的帧号和时间戳显示正确。
+- Run ID：`20260713_T06B_STAGE1_E001`，完整命令与真实结果见 `logs/runs/T06B_ACTION_PHASE_LABELING.md`。
+- 该阶段当时停止等待人工CSV；后续人工标签验证结果见上一节。未处理E002-E012，未滤波，未进行LeRobot转换或训练。
+
+## T06A 操作视频标注规范与任务设计（2026-07-13）
+
+### 本轮完成
+
+- 修订 `context/ACTION_PHASE_SCHEMA.md`，定义 episode、人工阶段区间、逐帧字段、双语文本、物体/手别/成功/质量状态及特殊场景规则。
+- 新建并完善 `tasks/T06A_ACCEPTANCE_CRITERIA.md`，规定下一轮实现的7个脚本、输出、自动验证和人工验收方法。
+- 更新 `tasks/CURRENT_TASK.md`、`tasks/TASK_QUEUE.md` 和 `tasks/DECISIONS.md`，确立主线、Kinect支线、K01 RGB-only和数据划分边界。
+
+### 关键修正
+
+- 人工阶段闭区间是权威标签，frame/text文件只做确定性展开，不对离散阶段ID插值。
+- 边界帧归属新阶段，不强制最短3帧；真实的短暂抓取或释放阶段不得因时长被合并。
+- 数据集按源视频/录制会话分组，禁止同一视频跨train/val/test；单次录制K01标记为`unsplit`。
+- RGB无法可靠测量的固定物理距离和视线方向不作为硬边界条件；FPS未知时工具必须停止而非猜测时间戳。
+
+### 执行与边界
+
+- 本轮仅执行文档读取、编辑和一致性检查；未运行标注代码，未处理K01，未创建实验结果。
+- 未加载Kinect深度/骨架，未修改原始数据，未进行LeRobot转换、滤波、训练或T06B。
+- 下一步需用户另行要求后，按T06A验收标准实现工具并以K01 RGB进行真实原型验收。
+
+## T05A 骨架序列与质量掩码（2026-07-13）
+
+### 实现与输出
+
+- 新建`build_subject_sequences.py`、`build_quality_mask.py`、`validate_quality_mask.py`、`render_quality_mask.py`，均支持`--help`并通过`py_compile`。
+- 生成P001/P002/P003各240行连续序列、720行`quality_mask.jsonl`、摘要和240帧H.264可视化。
+- 修正后帧0-1不再进行几何身份分配，统一填充为`missing`、`frame_valid=false`和`no_confirmed_track_identity`。
+
+### 真实统计
+
+- P001：222 valid、13 low_quality、3 invalid_identity_mix、2 missing。
+- P002：238 valid、0 low_quality、0 invalid、2 missing。
+- P003：235 valid、0 low_quality、3 invalid_identity_mix、2 missing。
+- 全局：695 valid、13 low_quality、6 invalid、6 missing；额外pose层排除3个ambiguous、1个phantom、2个non-target。
+- 最终序列含99个大于1的confidence；帧0-1整体missing置零，其他保留pose未裁剪且与T04 JSONL逐值相同。
+
+### 验证与边界
+
+- 独立验证器通过，720条掩码完整，43-45未误标为valid，输入文件和OpenPose raw目录哈希未变化。
+- 修正后可视化检查通过：帧0-1只显示灰色missing标签，帧2恢复绿色；其余质量颜色规则不变。
+- 几何回溯身份已从脚本和有效派生数据中移除。
+- 未执行滤波、插值、平滑、Kinect对齐或T05B。
+
 ## Codex CLI自动批准设置（2026-07-12）
 
 - 本机`codex-cli 0.144.1`已不提供`--full-auto`参数。

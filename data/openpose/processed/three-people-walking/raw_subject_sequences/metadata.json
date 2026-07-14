@@ -1,0 +1,25 @@
+{
+  "video_id": "three-people-walking",
+  "subjects": [
+    "P001",
+    "P002",
+    "P003"
+  ],
+  "expected_frames": 240,
+  "input_association_jsonl": "/home/a531/HumanVLA/data/openpose/associated/three-people-walking.jsonl",
+  "input_association_sha256": "78c8132a2d920d4028e0402fa167a60178c736ba1863d2cb779f78b2df0c2d1b",
+  "first_complete_matched_frame": 2,
+  "unconfirmed_identity_frames": [
+    0,
+    1
+  ],
+  "unconfirmed_identity_policy": "missing_fill_no_interpolation",
+  "identity_rule": "Never use OpenPose people-array order as identity.",
+  "processing_rule": "No interpolation, filtering, smoothing, or coordinate modification.",
+  "annotation_version": "v0.2.0",
+  "outputs": {
+    "P001": "/home/a531/HumanVLA/data/openpose/processed/three-people-walking/raw_subject_sequences/P001.jsonl",
+    "P002": "/home/a531/HumanVLA/data/openpose/processed/three-people-walking/raw_subject_sequences/P002.jsonl",
+    "P003": "/home/a531/HumanVLA/data/openpose/processed/three-people-walking/raw_subject_sequences/P003.jsonl"
+  }
+}

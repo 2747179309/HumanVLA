@@ -1,0 +1,100 @@
+{
+  "config_version": "t07c_b2_v1.0.0",
+  "status": "preregistered_before_dataset_generation",
+  "video_id": "pick_place_pilot_v1_E001",
+  "random_seed": 20260714,
+  "fps": 30.0,
+  "target_joints": [
+    "RElbow",
+    "RWrist"
+  ],
+  "reference_joints": [
+    "Neck",
+    "RShoulder",
+    "RElbow",
+    "RWrist"
+  ],
+  "clean_selection": {
+    "window_length_frames": 8,
+    "guard_frames_between_windows": 2,
+    "require_same_phase": true,
+    "require_all_reference_joints_raw_valid": true,
+    "require_selected_downstream_source": "raw",
+    "require_repaired_observation_available": false,
+    "require_corruption_type": "valid",
+    "require_empty_source_event_ids": true,
+    "description": "Accepted repairs and every real or candidate anomaly are excluded from synthetic ground truth."
+  },
+  "split_policy": {
+    "strategy": "fixed_nonoverlapping_temporal_ranges_aligned_to_phase_boundaries",
+    "ranges": {
+      "train": [2, 120],
+      "val": [121, 206],
+      "test": [207, 344]
+    },
+    "selected_base_windows": {
+      "train": 7,
+      "val": 3,
+      "test": 4
+    },
+    "selection_within_split": "seeded_phase_stratified_without_replacement",
+    "description": "All variants from one source window remain in one split; source frames never cross splits."
+  },
+  "coordinate_policy": {
+    "pixel_ground_truth": "T07A raw absolute pixel coordinates",
+    "normalization_origin": "per-frame Neck",
+    "normalization_scale": "per-frame shoulder_width_px",
+    "corruption_scale": "median shoulder_width_px of the clean source window"
+  },
+  "corruptions": {
+    "gaussian_noise": {
+      "definition": "z_t = x_t + epsilon_t; epsilon_t ~ N(0, (sigma * s)^2 I_2)",
+      "application": "all frames in the source window",
+      "levels": [
+        {"intensity_id": "low", "sigma_shoulder_width": 0.01},
+        {"intensity_id": "medium", "sigma_shoulder_width": 0.03},
+        {"intensity_id": "high", "sigma_shoulder_width": 0.06}
+      ]
+    },
+    "burst_jump": {
+      "definition": "z_t = x_t + magnitude * s * u for t in a contiguous burst; ||u||_2 = 1",
+      "application": "seeded interior contiguous interval with one clean context frame on each side",
+      "levels": [
+        {"intensity_id": "low", "magnitude_shoulder_width": 0.08, "duration_frames": 1},
+        {"intensity_id": "medium", "magnitude_shoulder_width": 0.16, "duration_frames": 2},
+        {"intensity_id": "high", "magnitude_shoulder_width": 0.30, "duration_frames": 3}
+      ]
+    },
+    "continuous_drift": {
+      "definition": "z_t = x_t + alpha_t * magnitude * s * u; alpha_t increases linearly from 1/L to 1",
+      "application": "six interior frames; first and last window frames remain clean context",
+      "duration_frames": 6,
+      "levels": [
+        {"intensity_id": "low", "magnitude_shoulder_width": 0.05},
+        {"intensity_id": "medium", "magnitude_shoulder_width": 0.12},
+        {"intensity_id": "high", "magnitude_shoulder_width": 0.25}
+      ]
+    },
+    "short_missing": {
+      "definition": "z_t = null for t in a contiguous gap",
+      "application": "seeded interior contiguous interval with one observed context frame on each side",
+      "levels": [
+        {"intensity_id": "low", "gap_length_frames": 1},
+        {"intensity_id": "medium", "gap_length_frames": 2},
+        {"intensity_id": "high", "gap_length_frames": 4}
+      ]
+    }
+  },
+  "expected_dataset": {
+    "base_window_count": 14,
+    "samples_per_base_window": 24,
+    "total_sample_count": 336,
+    "samples_per_corruption_type": 84,
+    "samples_per_intensity": 112,
+    "samples_by_split": {
+      "train": 168,
+      "val": 72,
+      "test": 96
+    }
+  }
+}

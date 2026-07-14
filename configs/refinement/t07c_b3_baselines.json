@@ -1,0 +1,76 @@
+{
+  "config_version": "t07c_b3_v1.0.0",
+  "status": "preregistered_before_test_evaluation",
+  "video_id": "pick_place_pilot_v1_E001",
+  "fps": 30.0,
+  "input_dataset": "data/trajectories/pick_place_pilot_v1_E001/synthetic_corruption_dataset.jsonl",
+  "raw_trajectory": "data/trajectories/pick_place_pilot_v1_E001/raw_upper_limb_trajectory.jsonl",
+  "frozen_split_field": "split",
+  "allowed_splits": ["train", "val", "test"],
+  "target_joints": ["RElbow", "RWrist"],
+  "coordinate_space_for_filtering": "neck_shoulder_normalized",
+  "pixel_output_reconstruction": "output_px = neck_origin_px + output_norm * shoulder_width_px",
+  "missing_value_policy": {
+    "global": "NaN/null is never replaced by zero",
+    "corrupted_input": "preserve missing output",
+    "savitzky_golay": "offline linear interpolation from observed input only, then symmetric smoothing",
+    "one_euro": "causal hold-last filtered state while observation is missing",
+    "kalman": "causal predict-only step while observation is missing"
+  },
+  "method_causality": {
+    "corrupted_input": "no_processing",
+    "savitzky_golay": "offline_noncausal",
+    "one_euro": "online_causal",
+    "kalman_cv": "online_causal",
+    "confidence_weighted_kalman": "online_causal"
+  },
+  "parameter_search": {
+    "savitzky_golay": {
+      "window_length": [3, 5, 7],
+      "polyorder": [2]
+    },
+    "one_euro": {
+      "min_cutoff_hz": [0.5, 1.0, 2.0, 5.0],
+      "beta": [0.0, 0.01, 0.05, 0.1],
+      "derivative_cutoff_hz": [1.0]
+    },
+    "kalman_cv": {
+      "acceleration_noise_std_norm_s2": [0.5, 2.0, 8.0],
+      "measurement_noise_std_norm": [0.005, 0.02, 0.08],
+      "initial_velocity_std_norm_s": [1.0]
+    },
+    "confidence_weighted_kalman": {
+      "acceleration_noise_std_norm_s2": [0.5, 2.0, 8.0],
+      "base_measurement_noise_std_norm": [0.005, 0.02, 0.08],
+      "confidence_power": [1.0, 2.0],
+      "minimum_confidence": [0.05],
+      "initial_velocity_std_norm_s": [1.0]
+    }
+  },
+  "selection_protocol": {
+    "train_use": "development diagnostics only; never determines the reported parameter ranking",
+    "validation_use": "evaluate every preregistered candidate and select one parameter set per method",
+    "test_use": "run exactly once after selected parameters and provenance hashes are frozen",
+    "primary_metric": "mean_corrupted_region_rmse_norm_with_missing_penalty",
+    "missing_prediction_penalty_norm": 1.0,
+    "selection_score": "0.6 * mean_corrupted_region_rmse_norm_with_missing_penalty + 0.4 * mean_clean_region_displacement_norm",
+    "tie_break_order": [
+      "mean_corrupted_region_rmse_norm_with_missing_penalty",
+      "mean_clean_region_displacement_norm",
+      "mean_velocity_rmse_norm_s",
+      "parameter_id"
+    ]
+  },
+  "evaluation": {
+    "derivative_dt_sec": 0.03333333333333333,
+    "real_motion_minimum_clean_path_norm": 0.02,
+    "phase_boundary_shift_policy": "not_applicable when a B2 window contains only one phase; report null with reason instead of zero",
+    "group_dimensions": ["method", "joint", "corruption_type", "severity", "phase", "split"]
+  },
+  "forbidden_inputs": [
+    "clean_trajectory as filter input",
+    "corruption_mask as filter input",
+    "manual corruption decisions",
+    "test metrics during parameter selection"
+  ]
+}
