@@ -1,0 +1,47 @@
+dataset_id: pick_place_pilot_v1
+measurement_unit: cm
+
+object:
+  object_id: BOX01
+  type: cardboard_box
+  length: 12.0
+  width: 10.0
+  height: 4.0
+
+markers:
+  marker_A:
+    length: null
+    width: null
+    center_from_table_left_edge: null
+    center_from_table_near_edge: null
+
+  marker_B:
+    length: null
+    width: null
+    center_from_table_left_edge: null
+    center_from_table_near_edge: null
+
+  center_distance_A_to_B: 57.0
+
+table:
+  height: 75.0
+  length: null
+  width: null
+
+camera:
+  device: null
+  resolution: null
+  fps: null
+  lens_height_from_floor: null
+  lens_height_above_table: null
+  horizontal_distance_to_table_near_edge: 30.0
+  horizontal_distance_to_marker_center_line: 67.0
+  fixed_during_recording: true
+
+operator:
+  participant_id: P01
+  active_hand: right
+
+notes:
+  - Upper body, head, shoulders, elbows, wrists and full tabletop are visible.
+  - Camera, table, markers and lighting remained fixed for all episodes.

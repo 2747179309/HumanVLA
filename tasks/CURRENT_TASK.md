@@ -1,49 +1,24 @@
-# T05 — 骨架质量清洗与时序处理方案设计
+# T07C-B3 → ACCEPTED | T07C-B4 — 质量感知阶段保持骨骼轨迹优化
 
-## 任务内容
+## B3 验收结论：通过
 
-基于 T04 关联后的骨架序列（P001/P002/P003 各 238 帧），设计骨架质量清洗和时序处理方案。**本轮只设计方案，不执行卡尔曼滤波、不运行实验。**
+47 候选在 validation 评估，test 运行一次。SG 在 idle 低噪声时反比 corrupted input 差（CRD=0.028 → clean 数据被过度平滑）。KF-CW 仅比 KF-CV 略好（<1%）——单一 confidence 不够。详见科学解读。
 
-### 必须区分的四类数据
+## B4 任务
 
-| 类别 | 帧 | 性质 | 处理 |
-|------|-----|------|------|
-| 可平滑抖动 | 大部分帧 | 正常的关键点帧间小偏差 | 卡尔曼/EMA 平滑 → 另存 smoothed |
-| 不可平滑的 identity_mix | 43, 44, 45 | 跨人物手臂错误连接 | **排除**，不得进入平滑或训练 |
-| 应直接排除的 phantom | 188 (额外骨架) | 非人物区域虚假骨架 | **排除** |
-| 应保持 unmatched 的 | 207, 208 (额外), 0-1 (无 MOT) | 非 P001-P003 人物 | **不纳入**主要人物序列 |
+实现 M0→M4 递进消融：质量权重 → 动态约束 → 阶段边界保护 → 骨骼约束。每模块针对 B3 暴露的具体失败模式。独立构建 boundary benchmark。
 
-### 处理步骤（仅设计，不执行）
-
-1. 读取 T04 关联输出 `data/openpose/associated/three-people-walking.jsonl`
-2. 按 subject_id 分组，提取 238 帧连续骨架序列
-3. 标记排除帧（43-45 对 P001/P003 标记为 invalid；188/207/208 额外骨架已排除）
-4. 对可平滑帧设计滤波方案：卡尔曼滤波 vs EMA vs Savitzky-Golay 参数建议
-5. 对 15-19、54-61（P001 手臂定位误差）设计评估方案：平滑前后逐关节对比
-6. 定义输出格式：`_smoothed` 派生字段，原始 keypoints 不覆盖
-7. 定义质量指标：逐关节 Jerk、Jitter、平滑前后偏差
-
-### 输出（仅规范文件，非数据）
+## 本轮产出
 
 | 文件 | 说明 |
 |------|------|
-| `tasks/T05_ACCEPTANCE_CRITERIA.md` | T05 验收标准 |
-| 设计文档 | 滤波参数选择依据、排除帧规则、评估指标定义 |
-
-### 明确排除
-- ❌ 不执行卡尔曼滤波
-- ❌ 不修改原始关联 JSONL
-- ❌ 不修改 OpenPose JSON
-- ❌ 不对 43-45 做任何修复尝试
-- ❌ 不开始动作标注或 VLA 训练
+| `docs/learning/T07C_B3_SCIENTIFIC_INTERPRETATION.md` | 10 项深入分析 |
+| `docs/learning/T07C_B3_ORAL_EXAM.md` | 10 个检查问题 |
+| `docs/learning/T07C_B4_METHOD_THEORY.md` | M1-M4 理论+与B3的关联 |
+| `docs/learning/T07C_B4_EXPERIMENT_HYPOTHESES.md` | H1-H5 冻结假设+boundary benchmark |
+| `docs/learning/T07C_B4_IMPLEMENTATION_PLAN.md` | 代码结构+超参数 |
+| `tasks/T07C_B4_ACCEPTANCE_CRITERIA.md` | 验收标准 |
 
 ## 状态
 
-`PENDING` — 明天唯一任务。T04 已通过验收（有条件）。
-
-## 停止条件
-
-- T05 验收标准文档完成
-- 四类数据的处理规则已明确写入文档
-- 43-45 排除规则已有强制执行条款
-- **不写代码，不跑实验**
+B3: ACCEPTED. B4: 本轮只设计和教学，不运行算法。

@@ -1,0 +1,2 @@
+video_id,track_id,subject_id,start_frame,end_frame,valid_from_frame,valid_to_frame,role,include_for_pose,reviewer,review_status,annotation_version,notes
+pick_place_pilot_v1_E001,1,P001,2,344,2,344,main_operator,1,user_human_confirmation,human_confirmed,v0.2.0,User confirmed track 1 always belongs to the main operator; frames 0-1 remain missing because of DeepSORT n_init
