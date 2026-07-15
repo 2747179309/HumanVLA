@@ -138,11 +138,11 @@ python scripts/azure_kinect/validate_kinect_export.py --input data/azure_kinect/
 **要求**:
 - [ ] 验证报告说明 RGB 和 depth 时间戳来源
 - [ ] 如果硬件同步，记录同步机制
-- [ ] 计算并报告：
-  - 帧间时间步长分布
-  - 实际帧率（均值、标准差）
-  - 是否有时间戳回退
-  - 是否有异常大的间隔
+- [x] 计算并报告：
+  - 帧间时间步长分布 ✅ 33ms (66.9%) + 34ms (33.1%)
+  - 实际帧率（均值、标准差） ✅ 30.003 FPS, jitter 0.471ms
+  - 是否有时间戳回退 ✅ 0 regressions
+  - 是否有异常大的间隔 ✅ 0 large gaps
 
 ---
 
