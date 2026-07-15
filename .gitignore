@@ -37,6 +37,7 @@ data/openpose/raw_json/*
 results/*
 !results/mot/
 !results/openpose/
+!results/azure_kinect/
 !results/figures/
 !results/tables/
 results/mot/*

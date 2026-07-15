@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/2747179309/HumanVLA/data/interfaces/trajectory_exchange_schema.json",
+  "title": "HumanVLA Trajectory Exchange Schema",
+  "description": "Frozen data exchange format between the Kinect 3D reference branch and the main RGB monocular branch. Each record is one joint in one frame.",
+
+  "type": "object",
+  "required": ["video_id", "frame_index", "timestamp_sec", "joint_name", "source"],
+  "properties": {
+    "video_id": {
+      "type": "string",
+      "description": "Unique video identifier within the project, e.g. 'KVAL001', 'E001'."
+    },
+    "frame_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based frame index within the video."
+    },
+    "source_frame_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Original frame index from the source system, if different from frame_index."
+    },
+    "timestamp_sec": {
+      "type": "number",
+      "minimum": 0.0,
+      "description": "Seconds elapsed since video start."
+    },
+    "joint_name": {
+      "type": "string",
+      "description": "Joint identifier using BODY_25 naming convention.",
+      "enum": [
+        "Nose", "Neck", "RShoulder", "RElbow", "RWrist",
+        "LShoulder", "LElbow", "LWrist", "MidHip",
+        "RHip", "RKnee", "RAnkle", "LHip", "LKnee", "LAnkle",
+        "REye", "LEye", "REar", "LEar",
+        "LBigToe", "LSmallToe", "LHeel", "RBigToe", "RSmallToe", "RHeel"
+      ]
+    },
+
+    "u_rgb": {
+      "type": "number",
+      "description": "Horizontal pixel coordinate in the RGB image. null if unavailable.",
+      "minimum": 0
+    },
+    "v_rgb": {
+      "type": "number",
+      "description": "Vertical pixel coordinate in the RGB image. null if unavailable.",
+      "minimum": 0
+    },
+
+    "x_camera_m": {
+      "type": "number",
+      "description": "3D X coordinate in camera frame (right), in meters. null if unavailable."
+    },
+    "y_camera_m": {
+      "type": "number",
+      "description": "3D Y coordinate in camera frame (down), in meters. null if unavailable."
+    },
+    "z_camera_m": {
+      "type": "number",
+      "description": "3D Z coordinate in camera frame (forward / depth), in meters. null if unavailable."
+    },
+
+    "x_2d_norm": {
+      "type": "number",
+      "description": "Normalized 2D x coordinate (x_pixel / image_width), from monocular method. null if not applicable."
+    },
+    "y_2d_norm": {
+      "type": "number",
+      "description": "Normalized 2D y coordinate (y_pixel / image_height), from monocular method. null if not applicable."
+    },
+
+    "x_25d_m": {
+      "type": "number",
+      "description": "2.5D X coordinate in task-aligned frame, in meters. null if not applicable."
+    },
+    "y_25d_m": {
+      "type": "number",
+      "description": "2.5D Y coordinate in task-aligned frame, in meters. null if not applicable."
+    },
+    "z_25d_m": {
+      "type": "number",
+      "description": "2.5D Z coordinate (height) in task-aligned frame, in meters. null if not applicable."
+    },
+
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Joint confidence normalized to [0, 1]. For Kinect: 0=NONE, 0.33=LOW, 0.67=MEDIUM, 1.0=HIGH."
+    },
+    "observation_valid": {
+      "type": "boolean",
+      "description": "Whether the joint is actually observed (not hallucinated or inferred from far-away data)."
+    },
+    "reference_valid": {
+      "type": "boolean",
+      "description": "Whether this record qualifies as a reliable reference measurement. Kinect joints with LOW/NONE confidence or bone-length anomalies are reference_valid=false."
+    },
+    "reference_quality": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "unusable"],
+      "description": "Quality tier of the reference measurement."
+    },
+    "invalid_reason": {
+      "type": "string",
+      "enum": ["low_confidence", "bone_length_anomaly", "occlusion", "tracking_failure", "fov_edge", "none"],
+      "description": "Reason why reference_valid is false, or 'none' if valid."
+    },
+    "observation_status": {
+      "type": "string",
+      "enum": ["visible", "occluded", "out_of_fov", "uncertain"],
+      "description": "Observation condition of the joint."
+    },
+
+    "source": {
+      "type": "string",
+      "enum": [
+        "kinect_reference",
+        "rgb_raw",
+        "rgb_refined",
+        "task_constrained_25d"
+      ],
+      "description": "Origin of the trajectory data. kinect_reference = Azure Kinect 3D reference. rgb_raw = raw monocular 2D. rgb_refined = quality-optimized monocular 2D. task_constrained_25d = 2.5D task-constrained trajectory."
+    },
+    "phase_label": {
+      "type": "string",
+      "enum": ["reach", "grasp", "lift", "transport", "place", "release", "idle", "unknown"],
+      "description": "Coarse action phase label for the frame."
+    }
+  },
+
+  "_coordinate_systems": {
+    "camera_frame": {
+      "description": "Right-handed coordinate system. Origin at camera optical center.",
+      "x_axis": "Right (from camera's perspective)",
+      "y_axis": "Down",
+      "z_axis": "Forward (depth, away from camera)",
+      "units": "meters"
+    },
+    "rgb_image_frame": {
+      "description": "2D pixel coordinate system.",
+      "u_axis": "Horizontal, 0 at left edge, increasing right",
+      "v_axis": "Vertical, 0 at top edge, increasing down",
+      "units": "pixels"
+    },
+    "task_aligned_frame": {
+      "description": "Task-aligned 2.5D coordinate system. Origin at table center or task reference point A.",
+      "x_axis": "Horizontal, parallel to table plane",
+      "y_axis": "Horizontal, perpendicular to x in table plane",
+      "z_axis": "Vertical (height above table), positive upward",
+      "units": "meters"
+    }
+  },
+
+  "_confidence_normalization": {
+    "kinect_sdk_to_normalized": {
+      "0": {"level": "NONE", "normalized": 0.0, "reference_valid": false},
+      "1": {"level": "LOW", "normalized": 0.33, "reference_valid": false},
+      "2": {"level": "MEDIUM", "normalized": 0.67, "reference_valid": true},
+      "3": {"level": "HIGH", "normalized": 1.0, "reference_valid": true}
+    }
+  },
+
+  "_usage_notes": [
+    "This schema defines the FROZEN exchange format between branches.",
+    "Kinect branch produces records with source='kinect_reference'.",
+    "Main RGB branch produces records with source='rgb_raw', 'rgb_refined', or 'task_constrained_25d'.",
+    "For 2D comparison: match on (video_id, frame_index, joint_name), compare (u_rgb, v_rgb) from kinect_reference vs rgb_refined.",
+    "For 2.5D comparison: match on (video_id, frame_index, joint_name), compare (x_25d_m, y_25d_m, z_25d_m) from task_constrained_25d vs (x_camera_m, y_camera_m, z_camera_m) from kinect_reference after coordinate alignment.",
+    "Kinect measurements are pseudo-ground-truth, not absolute ground truth.",
+    "Always filter reference_valid=true before computing error statistics against reference.",
+    "Different recordings of the same task can only be compared on aggregate statistics (phase means, ranges, distributions), not frame-by-frame."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-15T08:01:57.479956+00:00",
+  "directory": "data/azure_kinect/processed/K01",
+  "file_count": 5,
+  "files": {
+    "data/azure_kinect/processed/K01/calibration.json": "cf9d8ecb43e7a3fa65b674e9828a7977014211b7efb634d38bbfb2bd9733cd1c",
+    "data/azure_kinect/processed/K01/frame_sync.csv": "55b5e30a5f63c557e64d0d888dbe23e0be7823a866fde9f499fbb584e64cdcfd",
+    "data/azure_kinect/processed/K01/kinect_skeleton.jsonl": "51861f993c46429cee5802303621376e41067312954fa66601c1a46c6ad29b12",
+    "data/azure_kinect/processed/K01/skeleton_2d_raw.jsonl": "cfa4a5da9c3a2fdcc9ed0ff2c63ec108dd4e0c5d6fc8634f6132d62c8fe40086",
+    "data/azure_kinect/processed/K01/skeleton_3d_raw.jsonl": "eaaf767c87df743062c3d6357fe8debe52dd81f3835ef6fa5739d4692c37a1d8"
+  }
+}

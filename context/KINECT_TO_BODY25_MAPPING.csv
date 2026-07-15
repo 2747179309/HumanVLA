@@ -1,8 +1,26 @@
 openpose_id,openpose_joint,kinect_joint,mapping_type,note
+0,Nose,NOSE,exact,已将偏误NOSB修正为官方标准NOSE
 1,Neck,NECK,exact,
 2,RShoulder,SHOULDER_RIGHT,exact,
 3,RElbow,ELBOW_RIGHT,exact,
 4,RWrist,WRIST_RIGHT,exact,
-8,MidHip,PELVIS,approximate,
-0,Nose,NOSB,derived,Calculated from head center
-15,REye,EYE_RIGHT,unavailable,Sensor occlusion
+5,LShoulder,SHOULDER_LEFT,exact,
+6,LElbow,ELBOW_LEFT,exact,
+7,LWrist,WRIST_LEFT,exact,
+8,MidHip,PELVIS,approximate,采用骨盆中心作为髋部中点
+9,RHip,HIP_RIGHT,exact,
+10,RKnee,KNEE_RIGHT,exact,
+11,RAnkle,ANKLE_RIGHT,exact,
+12,LHip,HIP_LEFT,exact,
+13,LKnee,KNEE_LEFT,exact,
+14,LAnkle,ANKLE_LEFT,exact,
+15,REye,EYE_RIGHT,exact,
+16,LEye,EYE_LEFT,exact,
+17,REar,EAR_RIGHT,exact,
+18,LEar,EAR_LEFT,exact,
+19,LBigToe,FOOT_LEFT,approximate,使用足部中心近似
+20,LSmallToe,UNAVAILABLE,none,传感器视场外缺失
+21,LHeel,UNAVAILABLE,none,
+22,RBigToe,FOOT_RIGHT,approximate,
+23,RSmallToe,UNAVAILABLE,none,
+24,RHeel,UNAVAILABLE,none,

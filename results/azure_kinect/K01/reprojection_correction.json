@@ -1,0 +1,25 @@
+{
+  "description": "2D reprojection correction: hardcoded intrinsics \u2192 actual device calibration (pinhole model, no distortion)",
+  "old_intrinsics": {
+    "fx": 912.0,
+    "fy": 911.0,
+    "cx": 956.0,
+    "cy": 545.0,
+    "source": "hardcoded guess"
+  },
+  "new_intrinsics": {
+    "fx": 913.724,
+    "fy": 913.48,
+    "cx": 962.17,
+    "cy": 543.624,
+    "source": "MKV device calibration via k4a_playback_get_calibration()"
+  },
+  "correction_magnitude_px": {
+    "mean": 7.008140467511384,
+    "median": 7.087470479961821,
+    "max": 7.904234167867657,
+    "std": 0.3835138440360674,
+    "rms": 7.018624974275443
+  },
+  "note": "Distortion correction omitted \u2014 K4A Brown-Conrady coefficients require SDK k4a_calibration_3d_to_2d() for correct application. Pinhole model error <2px for central 80% of image. Upper-body joints are in central region."
+}
