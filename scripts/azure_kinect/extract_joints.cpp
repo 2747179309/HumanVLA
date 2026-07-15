@@ -184,6 +184,7 @@ int main(int argc, char* argv[]) {
     csv_file << "frame_index,color_timestamp_usec,depth_timestamp_usec,color_path,depth_path\n";
 
     std::ofstream json_3d_temp(base_path + "skeleton_3d_raw.txt");
+    std::ofstream sdk_2d_temp(base_path + "skeleton_2d_sdk.txt");
 
     // --- Main extraction loop ---
     k4a_capture_t capture = NULL;
@@ -269,6 +270,7 @@ int main(int argc, char* argv[]) {
                 k4abt_frame_get_body_skeleton(body_frame, 0, &body.skeleton);
 
                 json_3d_temp << body_id;
+                sdk_2d_temp << frame_index << "|" << body_id;
                 for (int i = 0; i < 32; i++) {
                     // SDK positions are in millimeters; convert to meters
                     float x_m = body.skeleton.joints[i].position.xyz.x / 1000.0f;
@@ -276,12 +278,25 @@ int main(int argc, char* argv[]) {
                     float z_m = body.skeleton.joints[i].position.xyz.z / 1000.0f;
                     int conf = static_cast<int>(body.skeleton.joints[i].confidence_level);
 
+                    // SDK-native 2D projection (with full distortion model)
+                    k4a_float2_t uv;
+                    int valid;
+                    k4a_calibration_3d_to_2d(&calibration,
+                        &body.skeleton.joints[i].position,
+                        K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR,
+                        &uv, &valid);
+                    float u_sdk = valid ? uv.xy.x : 0.0f;
+                    float v_sdk = valid ? uv.xy.y : 0.0f;
+
                     json_3d_temp << "|" << x_m << "," << y_m << "," << z_m << "," << conf;
+                    sdk_2d_temp << "|" << u_sdk << "," << v_sdk;
                 }
             } else {
                 json_3d_temp << "-1";
+                sdk_2d_temp << frame_index << "|-1";
             }
             json_3d_temp << "\n";
+            sdk_2d_temp << "\n";
             k4abt_frame_release(body_frame);
         }
 
@@ -292,6 +307,7 @@ int main(int argc, char* argv[]) {
 
     csv_file.close();
     json_3d_temp.close();
+    sdk_2d_temp.close();
     k4abt_tracker_shutdown(tracker);
     k4abt_tracker_destroy(tracker);
     k4a_playback_close(playback);
