@@ -20,9 +20,12 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+import statistics
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 
 # ============================================================================
@@ -112,6 +115,77 @@ def load_calibration(path: Path) -> dict:
 
 
 def get_intrinsics(calib: dict) -> Tuple[float, float, float, float, List[float], List[float]]:
+    """Extract pinhole + distortion parameters from calibration dict."""
+    ci = calib.get("color_intrinsics", calib)
+    fx = float(ci["fx"])
+    fy = float(ci["fy"])
+    cx = float(ci["cx"])
+    cy = float(ci["cy"])
+    k = [
+        float(ci.get("k1", 0.0)), float(ci.get("k2", 0.0)),
+        float(ci.get("k3", 0.0)), float(ci.get("k4", 0.0)),
+        float(ci.get("k5", 0.0)), float(ci.get("k6", 0.0)),
+    ]
+    p = [float(ci.get("p1", 0.0)), float(ci.get("p2", 0.0))]
+    return fx, fy, cx, cy, k, p
+
+
+def get_extrinsics(calib: dict) -> Tuple[np.ndarray, np.ndarray]:
+    """Extract depth→color extrinsic transformation (rotation matrix + translation vector).
+
+    Returns (R, T) where P_color = R @ P_depth + T (all in meters).
+    If no extrinsics found, returns identity rotation and zero translation.
+    """
+    ext = calib.get("extrinsics_depth_to_color", {})
+    if not ext:
+        return np.eye(3), np.zeros(3)
+
+    rotation = np.array(ext["rotation"], dtype=np.float64)  # 3x3
+    translation = np.array(ext["translation"], dtype=np.float64) / 1000.0  # mm → m
+
+    # Also check if we need to swap from column-major to row-major
+    # K4A stores rotation in row-major order
+    return rotation, translation
+
+
+def transform_depth_to_color(
+    points_depth: np.ndarray,
+    R: np.ndarray,
+    T: np.ndarray,
+) -> np.ndarray:
+    """Transform 3D points from depth camera frame to color camera frame.
+
+    Args:
+        points_depth: (N, 3) array of points in depth camera coordinates (meters).
+        R: (3, 3) rotation matrix.
+        T: (3,) translation vector (meters).
+
+    Returns:
+        (N, 3) array of points in color camera coordinates (meters).
+    """
+    # P_color = R @ P_depth + T
+    return points_depth @ R.T + T
+
+
+def project_pinhole_vec(
+    points_color: np.ndarray,
+    fx: float, fy: float, cx: float, cy: float,
+) -> np.ndarray:
+    """Vectorized pinhole projection of color-camera points to 2D.
+
+    Args:
+        points_color: (N, 3) array in color camera coordinates (meters).
+        fx, fy, cx, cy: Color camera intrinsics.
+
+    Returns:
+        (N, 2) array of (u, v) pixel coordinates.
+    """
+    X, Y, Z = points_color[:, 0], points_color[:, 1], points_color[:, 2]
+    uv = np.zeros((len(points_color), 2), dtype=np.float64)
+    valid = Z > 1e-9
+    uv[valid, 0] = fx * X[valid] / Z[valid] + cx
+    uv[valid, 1] = fy * Y[valid] / Z[valid] + cy
+    return uv
     """Extract pinhole + distortion parameters from calibration dict."""
     ci = calib.get("color_intrinsics", calib)  # support both nested and flat
     fx = float(ci["fx"])
@@ -228,6 +302,7 @@ def main() -> None:
     print(f"Loading calibration from {args.calibration} ...")
     calib = load_calibration(args.calibration)
     fx, fy, cx, cy, k, p = get_intrinsics(calib)
+    R_d2c, T_d2c = get_extrinsics(calib)
     print(f"  fx={fx:.3f}, fy={fy:.3f}, cx={cx:.3f}, cy={cy:.3f}")
     print(f"  k={[round(v,6) for v in k]}, p={[round(v,6) for v in p]}")
     print(f"  Resolution: {calib.get('color_resolution', {}).get('width', '?')}x"
@@ -274,34 +349,36 @@ def main() -> None:
         if body_id != -1:
             last_body_id = body_id
 
-        # Compute 2D projections
-        joints_2d_pinhole = []
-        joints_2d_calib = []
+        # Compute 2D projections — FIRST transform depth→color, THEN project
+        if len(joints_3d) == 0:
+            joints_2d_calib_full = []
+            joints_2d_pinhole = []
+        else:
+            joints_3d_arr = np.array(joints_3d, dtype=np.float64)
+            # Step 1: depth camera → color camera coordinates
+            joints_3d_color = transform_depth_to_color(joints_3d_arr, R_d2c, T_d2c)
+            # Step 2: project color-camera 3D → 2D pixels
+            joints_2d_calib_full = project_pinhole_vec(joints_3d_color, fx, fy, cx, cy).tolist()
+            # Pinhole-only (without extrinsics, for comparison)
+            joints_2d_pinhole = project_pinhole_vec(joints_3d_arr, fx, fy, cx, cy).tolist()
 
-        for j, (xyz, conf) in enumerate(zip(joints_3d, confs)):
+        # Per-joint statistics (skip if no joints for this frame)
+        for j, (xyz, conf) in enumerate(zip(joints_3d, confs) if joints_3d else []):
             x, y, z = xyz
-
-            # Pinhole projection
-            u_pin, v_pin = project_pinhole(x, y, z, fx, fy, cx, cy)
-            joints_2d_pinhole.append([u_pin, v_pin])
-
-            # Calibrated projection (with distortion)
-            u_cal, v_cal = project_calibrated(x, y, z, fx, fy, cx, cy, k, p)
-            joints_2d_calib.append([u_cal, v_cal])
-
-            # Statistics
             if conf <= 1:
                 low_conf_count += 1
             if x == 0.0 and y == 0.0 and z == 0.0:
                 missing_count += 1
 
-            # Out-of-bounds check
+            # Out-of-bounds check (use extrinsics-corrected projection)
+            u_cal, v_cal = joints_2d_calib_full[j]
             if u_cal != 0.0 and v_cal != 0.0:
                 if u_cal < 0 or v_cal < 0 or u_cal > args.image_width or v_cal > args.image_height:
                     oob_count += 1
 
-            # Reprojection difference (pinhole vs calibrated)
-            if z != 0.0:
+            # Extrinsics correction magnitude (depth→color)
+            u_pin, v_pin = joints_2d_pinhole[j]
+            if z > 1e-9:
                 err = ((u_pin - u_cal) ** 2 + (v_pin - v_cal) ** 2) ** 0.5
                 reproj_errors.append(err)
 
@@ -319,7 +396,7 @@ def main() -> None:
             "timestamp_usec": rec["timestamp_usec"],
             "body_id": body_id,
             "joints_3d_camera": [],      # filled by merge script
-            "joints_2d_color": joints_2d_calib,  # calibrated projection as primary
+            "joints_2d_color": joints_2d_calib_full,  # depth→color extrinsics + pinhole projection
             "joint_confidence": confs,
         }
         meta_2d_pinhole = {
@@ -341,7 +418,6 @@ def main() -> None:
 
     # Reprojection comparison stats
     if reproj_errors:
-        import statistics
         print(f"\nPinhole vs Calibrated reprojection difference:")
         print(f"  Mean:  {statistics.mean(reproj_errors):.4f} px")
         print(f"  Median: {statistics.median(reproj_errors):.4f} px")
