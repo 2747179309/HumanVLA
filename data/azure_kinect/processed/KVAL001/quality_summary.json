@@ -1,11 +1,11 @@
 {
-  "video_id": "KVAL007",
-  "total_frames": 536,
-  "valid_skeleton_frames": 536,
+  "video_id": "KVAL001",
+  "total_frames": 336,
+  "valid_skeleton_frames": 336,
   "body_id_switch_count": 0,
   "missing_joints_count": 0,
-  "low_confidence_joints_ratio": 0.29349347014925375,
-  "out_of_bounds_projection_count": 2490,
+  "low_confidence_joints_ratio": 0.34988839285714285,
+  "out_of_bounds_projection_count": 1819,
   "calibration": {
     "fx": 913.724,
     "fy": 913.48,
