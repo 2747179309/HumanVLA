@@ -1,0 +1,66 @@
+{
+  "video_id": "K01_reach_grasp_001",
+  "analysis_timestamp": "2026-07-15",
+  "total_frames": 240,
+  "frame_index": {
+    "range": "1 \u2013 240",
+    "continuity": "contiguous",
+    "zero_based": false,
+    "note": "Original C++ extraction uses 1-based frame_index"
+  },
+  "color_timestamps": {
+    "range_usec": [
+      201455,
+      8167455
+    ],
+    "duration_sec": 7.966,
+    "mean_delta_usec": 33330.543933054396,
+    "std_delta_usec": 471.3962333070373,
+    "min_delta_usec": 33000,
+    "max_delta_usec": 34000,
+    "delta_distribution": {
+      "33000": 160,
+      "34000": 79
+    },
+    "regressions": 0,
+    "duplicates": 0
+  },
+  "depth_timestamps": {
+    "range_usec": [
+      201455,
+      8167455
+    ],
+    "duration_sec": 7.966,
+    "mean_delta_usec": 33330.543933054396,
+    "std_delta_usec": 471.3962333070373,
+    "min_delta_usec": 33000,
+    "max_delta_usec": 34000,
+    "delta_distribution": {
+      "33000": 160,
+      "34000": 79
+    },
+    "regressions": 0,
+    "duplicates": 0
+  },
+  "color_depth_sync": {
+    "identical_frames": 240,
+    "identical_ratio": 1.0,
+    "max_difference_usec": 0,
+    "mean_difference_usec": 0,
+    "interpretation": "All color and depth timestamps are identical. This is consistent with Azure Kinect hardware synchronization in K4A_RECORD_MODE_COLOR_DEPTH_SYNCHRONIZED mode, where each capture() call returns one color image and one depth image with the same hardware timestamp.",
+    "verification_method": "Timestamps extracted from MKV via k4a_playback_get_next_capture() + k4a_image_get_device_timestamp_usec() in extract_joints.cpp"
+  },
+  "frame_rate": {
+    "nominal_fps": 30.0,
+    "actual_fps": 30.002510670348983,
+    "jitter_ms": 0.4713962333070373,
+    "note": "Frame intervals alternate between 33ms and 34ms (160+79 frames), consistent with 30fps hardware timing with \u00b10.5ms quantization jitter."
+  },
+  "anomalies": {
+    "timestamp_regressions": 0,
+    "large_gaps": 0,
+    "duplicate_timestamps": 0,
+    "path_mismatches": 0
+  },
+  "conclusion": "PASS \u2014 All timestamps are monotonic, color-depth synchronized, and consistent with nominal 30fps. No anomalies detected."
+}
