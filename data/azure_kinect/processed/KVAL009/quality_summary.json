@@ -1,0 +1,23 @@
+{
+  "video_id": "KVAL009",
+  "total_frames": 344,
+  "valid_skeleton_frames": 337,
+  "body_id_switch_count": 0,
+  "missing_joints_count": 0,
+  "low_confidence_joints_ratio": 0.28878997093023256,
+  "out_of_bounds_projection_count": 94,
+  "calibration": {
+    "fx": 913.724,
+    "fy": 913.48,
+    "cx": 962.17,
+    "cy": 543.624,
+    "k1": 0.25166,
+    "k2": -2.51382,
+    "k3": 1.56565,
+    "k4": 0.133808,
+    "k5": -2.3273,
+    "k6": 1.48278,
+    "p1": 0.000771823,
+    "p2": -7.43006e-05
+  }
+}

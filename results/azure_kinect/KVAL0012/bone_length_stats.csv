@@ -1,0 +1,10 @@
+bone_name,mean_length_m,std_length_m,cv,stable
+neck_to_head,0.9964,0.1244,0.1249,True
+neck_to_l_clavicle,0.0442,0.0030,0.0677,True
+l_clavicle_to_shoulder,0.1290,0.0087,0.0677,True
+l_shoulder_to_elbow,0.2494,0.0169,0.0677,True
+l_elbow_to_wrist,0.2093,0.0142,0.0677,True
+neck_to_r_clavicle,0.4915,0.0571,0.1161,True
+r_clavicle_to_shoulder,0.0975,0.0066,0.0677,True
+r_shoulder_to_elbow,0.0901,0.0494,0.5481,False
+r_elbow_to_wrist,0.3840,0.0504,0.1312,True

@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-07-15T09:29:08.723899+00:00",
+  "directory": "data/azure_kinect/processed/KVAL009",
+  "file_count": 8,
+  "files": {
+    "data/azure_kinect/processed/KVAL009/calibration.json": "e38fafcb3fc5061d42ccc32a7d601fd850117001f696c7de9f33731614c20d1c",
+    "data/azure_kinect/processed/KVAL009/frame_sync.csv": "ff510c7acfc692f98876fa247fb66e33264b3b978eea57fa7cf7b3c66585e990",
+    "data/azure_kinect/processed/KVAL009/kinect_skeleton.jsonl": "51ff68babed85eab441f2a315bd694222ead22f0a762abc7319e2f69f3d18906",
+    "data/azure_kinect/processed/KVAL009/quality_summary.json": "30e830d4024c0105f07d913cce6f347a4bff0b1fbb0045f3a176faee8b7e4ac7",
+    "data/azure_kinect/processed/KVAL009/skeleton_2d_pinhole.jsonl": "90c802a9e96bff447a203e06313dd79ec7c1e369c13cc97f769fa8aa8409c846",
+    "data/azure_kinect/processed/KVAL009/skeleton_2d_raw.jsonl": "8dd10a191992cfff6f568e0346d9ae1eb48f1a1577dcd19ff543946c44b5109c",
+    "data/azure_kinect/processed/KVAL009/skeleton_3d_raw.jsonl": "44d8e1fcdaafcbeda9e19576d67c778c80bb3833e6c40dc1a9a64d572111fda9",
+    "data/azure_kinect/processed/KVAL009/skeleton_3d_raw.txt": "f2f6fde5e3cd489f479bf98e609be01859c127e82af807e012be75509c5f17c8"
+  }
+}

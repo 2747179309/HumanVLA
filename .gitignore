@@ -171,3 +171,9 @@ build/
 !data/azure_kinect/raw_mkv/.gitkeep
 !data/azure_kinect/color/.gitkeep
 !data/azure_kinect/depth/.gitkeep
+
+# Kinect intermediate extraction artifacts
+data/azure_kinect/processed/*/color/
+data/azure_kinect/processed/*/depth/
+data/azure_kinect/processed/*/skeleton_3d_raw.txt
+data/azure_kinect/processed/*/skeleton_2d_pinhole.jsonl
