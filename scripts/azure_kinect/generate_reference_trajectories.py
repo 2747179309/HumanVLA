@@ -261,73 +261,101 @@ def generate_review_table(
     records: List[dict],
     kinematics: Dict[str, List[dict]],
     bone_stats: Dict[str, dict],
-) -> List[dict]:
-    """Generate human review table — flag frames that need inspection.
+) -> Tuple[List[dict], dict]:
+    """Generate human review table — only flag frames needing actual human inspection.
 
-    Flags:
-      - Low confidence (level <= LOW)
-      - Speed anomalies (> MAX_REASONABLE_SPEED)
-      - Bone length outliers (> 3σ from mean)
-      - Large inter-frame jumps
+    Review tiers:
+      CRITICAL: no body, tracking failure, >0.25m inter-frame jump
+      WARNING:  high speed (>3m/s), RWrist confidence=NONE, 0.15-0.25m jump
+      INFO:     isolated RWrist LOW in otherwise MEDIUM region (NOT bulk low conf)
+
+    We intentionally do NOT flag bulk low-confidence frames (e.g., RShoulder/RElbow
+    being LOW in all frames). Those are systemic issues documented in the quality
+    report, not per-frame review items.
     """
     review_rows = []
     prev_j3d = None
+    summary_counts = defaultdict(int)
 
     for rec in records:
         fnum = rec["frame_index"]
         body_id = rec["body_id"]
         flags = []
+        tier = ""
 
         if body_id == -1:
             review_rows.append({
                 "frame_index": fnum,
+                "source_frame_index": rec.get("source_frame_index", fnum + 1),
                 "body_id": body_id,
+                "tier": "CRITICAL",
                 "flags": "no_body_detected",
                 "detail": "",
+                "reviewer_decision": "",
             })
+            summary_counts["no_body"] += 1
+            prev_j3d = None
             continue
 
         j3d = np.array(rec["joints_3d_camera"])
         confs = rec["joint_confidence"]
 
-        # Check confidence for key joints
-        low_conf_joints = []
-        for b25_name, kidx in KEY_JOINT_MAP.items():
-            if confs[kidx] <= KinectConfidence.LOW:
-                low_conf_joints.append(f"{b25_name}(conf={confs[kidx]})")
-        if low_conf_joints:
-            flags.append(f"low_confidence: {', '.join(low_conf_joints)}")
+        # CRITICAL: RWrist tracking failure
+        rwrist_conf = confs[KEY_JOINT_MAP["RWrist"]]
+        if rwrist_conf == KinectConfidence.NONE:
+            flags.append(f"RWrist=NONE (tracking lost)")
+            tier = "CRITICAL"
+            summary_counts["rwrist_tracking_lost"] += 1
 
-        # Check speed from kinematics
-        for b25_name in KEY_JOINTS:
-            if b25_name in kinematics:
-                kin_list = kinematics[b25_name]
-                if fnum < len(kin_list):
-                    s = kin_list[fnum].get("speed_ms")
-                    if s is not None and s > MAX_REASONABLE_SPEED_MS:
-                        flags.append(f"high_speed_{b25_name}: {s:.2f}m/s")
-
-        # Check inter-frame jump
+        # CRITICAL / WARNING: large inter-frame jump
         if prev_j3d is not None:
             dists = np.linalg.norm(j3d - prev_j3d, axis=1)
             max_jump = float(np.max(dists))
-            if max_jump > 0.15:  # 15cm inter-frame jump
-                max_joint = KINECT_JOINT_NAMES[int(np.argmax(dists))]
+            max_joint = KINECT_JOINT_NAMES[int(np.argmax(dists))]
+            if max_jump > 0.25:
+                flags.append(f"CRITICAL_jump: {max_joint} moved {max_jump:.3f}m")
+                tier = "CRITICAL"
+                summary_counts["critical_jump"] += 1
+            elif max_jump > 0.15:
                 flags.append(f"large_jump: {max_joint} moved {max_jump:.3f}m")
+                if not tier:
+                    tier = "WARNING"
+                summary_counts["warning_jump"] += 1
+
+        # WARNING: high speed on RWrist (key task joint)
+        if "RWrist" in kinematics:
+            kin_list = kinematics["RWrist"]
+            if fnum < len(kin_list):
+                s = kin_list[fnum].get("speed_ms")
+                if s is not None and s > MAX_REASONABLE_SPEED_MS:
+                    flags.append(f"high_speed_RWrist: {s:.2f}m/s")
+                    if not tier:
+                        tier = "WARNING"
+                    summary_counts["high_speed"] += 1
+
+        # WARNING: Neck tracking anomaly (should always be stable)
+        neck_conf = confs[KEY_JOINT_MAP["Neck"]]
+        if neck_conf <= KinectConfidence.LOW:
+            flags.append(f"Neck=LOW (unexpected for trunk joint)")
+            tier = "WARNING"
+            summary_counts["neck_anomaly"] += 1
 
         prev_j3d = j3d
 
         if flags:
+            if not tier:
+                tier = "INFO"
             review_rows.append({
                 "frame_index": fnum,
                 "source_frame_index": rec.get("source_frame_index", fnum + 1),
                 "body_id": body_id,
+                "tier": tier,
                 "flags": "; ".join(flags),
                 "detail": "",
                 "reviewer_decision": "",
             })
 
-    return review_rows
+    return review_rows, dict(summary_counts)
 
 
 def compute_trajectory_summary(
@@ -405,7 +433,7 @@ def write_review_csv(rows: List[dict], path: Path) -> None:
     """Write human review table as CSV."""
     if not rows:
         return
-    fields = ["frame_index", "source_frame_index", "body_id", "flags", "detail", "reviewer_decision"]
+    fields = ["frame_index", "source_frame_index", "body_id", "tier", "flags", "detail", "reviewer_decision"]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -460,10 +488,12 @@ def main() -> None:
 
     # 3. Generate review table
     print("  Generating human review table ...")
-    review_rows = generate_review_table(records, kinematics, {})
+    review_rows, review_summary = generate_review_table(records, kinematics, {})
     review_path = args.output_dir / "review_table.csv"
     write_review_csv(review_rows, review_path)
     print(f"  Written: {review_path} ({len(review_rows)} frames flagged)")
+    if review_summary:
+        print(f"    Breakdown: {dict(review_summary)}")
 
     # 4. Trajectory summary
     print("  Computing trajectory summary ...")
