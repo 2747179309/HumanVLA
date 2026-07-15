@@ -30,6 +30,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <cstdint>
 #include <sys/stat.h>
 #include <k4a/k4a.h>
 #include <k4arecord/playback.h>
@@ -209,14 +210,32 @@ int main(int argc, char* argv[]) {
         if (color_img) {
             color_ts = k4a_image_get_device_timestamp_usec(color_img);
             uint8_t* buffer = k4a_image_get_buffer(color_img);
-            int h = k4a_image_get_height_pixels(color_img);
-            int w = k4a_image_get_width_pixels(color_img);
-            cv::Mat mat(h, w, CV_8UC4, buffer);
+            size_t size = k4a_image_get_size(color_img);
+            k4a_image_format_t fmt = k4a_image_get_format(color_img);
+
             cv::Mat bgr;
-            cv::cvtColor(mat, bgr, cv::COLOR_BGRA2BGR);
-            cv::imwrite(base_path + color_fname, bgr);
+            if (fmt == K4A_IMAGE_FORMAT_COLOR_MJPG) {
+                // MJPG (compressed JPEG): decode with OpenCV
+                std::vector<uint8_t> jpeg_buf(buffer, buffer + size);
+                bgr = cv::imdecode(jpeg_buf, cv::IMREAD_COLOR);
+            } else if (fmt == K4A_IMAGE_FORMAT_COLOR_BGRA32) {
+                // BGRA32 (raw): convert to BGR
+                int h = k4a_image_get_height_pixels(color_img);
+                int w = k4a_image_get_width_pixels(color_img);
+                int stride = k4a_image_get_stride_bytes(color_img);
+                if (stride == 0) stride = w * 4;
+                cv::Mat mat(h, w, CV_8UC4, buffer, stride);
+                cv::cvtColor(mat, bgr, cv::COLOR_BGRA2BGR);
+            } else {
+                std::cerr << "  Warning: unsupported color format " << (int)fmt
+                          << " at frame " << frame_index << std::endl;
+            }
+
+            if (!bgr.empty()) {
+                cv::imwrite(base_path + color_fname, bgr);
+                color_count++;
+            }
             k4a_image_release(color_img);
-            color_count++;
         }
 
         if (depth_img) {
