@@ -1,0 +1,131 @@
+{
+  "Neck": {
+    "total_frames": 135,
+    "valid_frames": 135,
+    "valid_ratio": 1.0,
+    "position_mean_m": {
+      "x": 0.0642,
+      "y": 0.0114,
+      "z": 1.5258
+    },
+    "position_range_m": {
+      "x": [
+        0.0568,
+        0.0664
+      ],
+      "y": [
+        0.0057,
+        0.0173
+      ],
+      "z": [
+        1.4978,
+        1.5333
+      ]
+    },
+    "speed_stats_ms": {
+      "mean": 0.0157,
+      "max": 0.3804,
+      "std": 0.054
+    }
+  },
+  "RShoulder": {
+    "total_frames": 135,
+    "valid_frames": 0,
+    "valid_ratio": 0.0,
+    "position_mean_m": {
+      "x": null,
+      "y": null,
+      "z": null
+    },
+    "position_range_m": {
+      "x": null,
+      "y": null,
+      "z": null
+    },
+    "speed_stats_ms": null
+  },
+  "RElbow": {
+    "total_frames": 135,
+    "valid_frames": 0,
+    "valid_ratio": 0.0,
+    "position_mean_m": {
+      "x": null,
+      "y": null,
+      "z": null
+    },
+    "position_range_m": {
+      "x": null,
+      "y": null,
+      "z": null
+    },
+    "speed_stats_ms": null
+  },
+  "RWrist": {
+    "total_frames": 135,
+    "valid_frames": 135,
+    "valid_ratio": 1.0,
+    "position_mean_m": {
+      "x": 0.0298,
+      "y": 0.0331,
+      "z": 1.4997
+    },
+    "position_range_m": {
+      "x": [
+        0.027,
+        0.0313
+      ],
+      "y": [
+        0.0246,
+        0.0402
+      ],
+      "z": [
+        1.4739,
+        1.5062
+      ]
+    },
+    "speed_stats_ms": {
+      "mean": 0.0144,
+      "max": 0.3573,
+      "std": 0.0504
+    }
+  },
+  "LShoulder": {
+    "total_frames": 135,
+    "valid_frames": 135,
+    "valid_ratio": 1.0,
+    "position_mean_m": {
+      "x": 0.2268,
+      "y": 0.0684,
+      "z": 1.467
+    },
+    "position_range_m": {
+      "x": [
+        0.1998,
+        0.2341
+      ],
+      "y": [
+        0.0631,
+        0.0706
+      ],
+      "z": [
+        1.4605,
+        1.4706
+      ]
+    },
+    "speed_stats_ms": {
+      "mean": 0.0134,
+      "max": 0.306,
+      "std": 0.044
+    }
+  },
+  "video_id": "KVAL0013",
+  "total_frames": 135,
+  "valid_body_frames": 135,
+  "key_joint_mapping": {
+    "Neck": "NECK",
+    "RShoulder": "SHOULDER_RIGHT",
+    "RElbow": "ELBOW_RIGHT",
+    "RWrist": "WRIST_RIGHT",
+    "LShoulder": "SHOULDER_LEFT"
+  }
+}
