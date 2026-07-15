@@ -38,6 +38,7 @@ results/*
 !results/mot/
 !results/openpose/
 !results/azure_kinect/
+!results/evaluation/
 !results/figures/
 !results/tables/
 results/mot/*
