@@ -6,3 +6,4 @@ K02_Review,48-49,None,PASSED,None
 K02_Review,62-63,None,PASSED,None
 K02_Review,103-104,None,PASSED,None
 K02_Review,204-205,Minor occlusion,PASSED,None
+K02A_Review,1-240,Hardcoded intrinsics (fx=912,fy=911,cx=956,cy=545) corrected to actual calibration (fx=913.7,fy=913.5,cx=962.2,cy=543.6) - mean correction 7.0px,FIXED,"Reprojected 2D joints with actual device calibration; pinhole model used (distortion omitted); old systematic offset resolved"
