@@ -6,23 +6,23 @@
       "phase": "reach"
     },
     {
-      "frame": 124,
+      "frame": 130,
       "phase": "lift"
     },
     {
-      "frame": 145,
+      "frame": 150,
       "phase": "rotate"
     },
     {
-      "frame": 186,
+      "frame": 190,
       "phase": "transport"
     },
     {
-      "frame": 217,
+      "frame": 230,
       "phase": "place"
     },
     {
-      "frame": 248,
+      "frame": 250,
       "phase": "release"
     }
   ]
