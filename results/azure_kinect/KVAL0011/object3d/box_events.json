@@ -1,0 +1,18 @@
+{
+  "video_id": "KVAL0011",
+  "events": [
+    {
+      "frame": 0,
+      "phase": "reach"
+    },
+    {
+      "frame": 130,
+      "phase": "grasp_attempt"
+    },
+    {
+      "frame": 200,
+      "phase": "stationary"
+    }
+  ],
+  "classification": "grasp_failure"
+}
