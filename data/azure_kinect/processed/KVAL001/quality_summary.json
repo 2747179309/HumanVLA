@@ -5,7 +5,7 @@
   "body_id_switch_count": 0,
   "missing_joints_count": 0,
   "low_confidence_joints_ratio": 0.34988839285714285,
-  "out_of_bounds_projection_count": 1819,
+  "out_of_bounds_projection_count": 1235,
   "calibration": {
     "fx": 913.724,
     "fy": 913.48,

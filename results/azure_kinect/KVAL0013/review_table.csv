@@ -1,3 +1,0 @@
-frame_index,source_frame_index,body_id,tier,flags,detail,reviewer_decision
-36,37,1,CRITICAL,CRITICAL_jump: EAR_RIGHT moved 0.419m,,
-43,44,1,WARNING,large_jump: EAR_RIGHT moved 0.241m,,

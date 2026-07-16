@@ -1,8 +1,0 @@
-openpose_id,openpose_joint,kinect_joint,mapping_type,note
-1,Neck,NECK,exact,
-2,RShoulder,SHOULDER_RIGHT,exact,
-3,RElbow,ELBOW_RIGHT,exact,
-4,RWrist,WRIST_RIGHT,exact,
-8,MidHip,PELVIS,approximate,
-0,Nose,NOSB,derived,Calculated from head center
-15,REye,EYE_RIGHT,unavailable,Sensor occlusion
