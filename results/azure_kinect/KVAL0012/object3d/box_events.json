@@ -1,0 +1,26 @@
+{
+  "video_id": "KVAL0012",
+  "events": [
+    {
+      "frame": 0,
+      "phase": "reach"
+    },
+    {
+      "frame": 100,
+      "phase": "lift"
+    },
+    {
+      "frame": 150,
+      "phase": "transport"
+    },
+    {
+      "frame": 350,
+      "phase": "place"
+    },
+    {
+      "frame": 400,
+      "phase": "release"
+    }
+  ],
+  "classification": "placement_failure"
+}
