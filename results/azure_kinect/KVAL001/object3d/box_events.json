@@ -14,13 +14,12 @@
       "phase": "transport"
     },
     {
-      "frame": 180,
+      "frame": 170,
       "phase": "place"
     },
     {
       "frame": 201,
       "phase": "release"
     }
-  ],
-  "method": "manual_annotation"
+  ]
 }
