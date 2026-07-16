@@ -1,0 +1,25 @@
+{
+  "video_id": "KVAL002",
+  "events": [
+    {
+      "frame": 0,
+      "phase": "reach"
+    },
+    {
+      "frame": 81,
+      "phase": "lift"
+    },
+    {
+      "frame": 120,
+      "phase": "transport"
+    },
+    {
+      "frame": 175,
+      "phase": "place"
+    },
+    {
+      "frame": 189,
+      "phase": "release"
+    }
+  ]
+}
