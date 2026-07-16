@@ -10,7 +10,11 @@
       "phase": "lift"
     },
     {
-      "frame": 155,
+      "frame": 145,
+      "phase": "rotate"
+    },
+    {
+      "frame": 186,
       "phase": "transport"
     },
     {
