@@ -6,45 +6,111 @@
 
 ---
 
-## 一、做了什么
+## 一、做了什么（操作流程）
 
-### 1.1 数据采集
-使用 Azure Kinect DK 录制 14 段纸盒搬运 RGB-D 视频：
-- KVAL001-003: A→B 正常速度
-- KVAL004-006: B→A 正常速度
-- KVAL007: A→B 慢速（536 帧）
-- KVAL008: A→B 快速（236 帧）
-- KVAL009: A→B 带 90° 旋转
-- KVAL010: B→A 带 90° 旋转
-- KVAL011: 抓取失败（盒未离开 A）
-- KVAL012: 放置失败（盒到达 B 但未放稳）
-- KVAL013-014: 空桌面（负样本）
+### 阶段 1：环境与数据准备
 
-### 1.2 标记定位 (K06)
-- 深度空间搜索桌面 A/B 标记点（米白 X 形胶带）
-- 利用 K4A extrinsics (R, T) 进行深度→RGB 投影
-- **AB 距离验证**: 实测 0.579m vs 真值 0.57m，误差 0.9cm ✓
+**步骤 1.1** — 使用 k4arecorder 录制 MKV 文件：
+```bash
+k4arecorder --color-mode 1080p --depth-mode NFOV_UNBINNED --rate 30 --imu OFF \
+  data/azure_kinect/raw_mkv/KVAL001.mkv
+```
+录制 14 段视频，每段执行纸盒 A↔B 搬运任务。场景参数：纸盒 12×10×4cm、AB 距离 57cm、桌面高度 75cm、相机距桌边 48cm。
 
-### 1.3 纸盒追踪 (K07)
-- 开发交互式标注工具 (`annotate_box.py`)
-- Catmull-Rom 三次样条插值生成平滑轨迹
-- 12 段视频 × 15-25 个标注帧 = ~230 个手工标注点
-- 输出每帧纸盒 2D 质心坐标
+**步骤 1.2** — C++ 提取器处理 MKV（`extract_joints.cpp`）：
+```bash
+/tmp/kinect_build/extract_joints --mkv data/azure_kinect/raw_mkv/KVAL001.mkv \
+  --output-dir data/azure_kinect/processed/ --video-id KVAL001 --cpu-only
+```
+从 MKV 提取：color/ 帧（JPG）、depth/ 帧（16-bit PNG）、相机标定 calibration.json（含 K4A extrinsics: R 矩阵 + T=[-32, -2, 4]mm）、人体骨架 3D（后续废弃）。
 
-### 1.4 阶段识别 (K08)
-- 基于纸盒运动自动识别 5-6 个动作阶段
-- reach → lift → transport → place → release
-- 旋转案例额外包含 rotate 阶段
+**关键问题 1** — 颜色帧花屏：MKV 中色彩为 MJPG 压缩格式，旧代码误当 BGRA 像素解读。修复：`cv::imdecode()` 正确解码 JPEG。
 
-### 1.5 成败分类 (K09)
-- 物理规则判定：
-  - KVAL001-010: success
-  - KVAL011: grasp_failure（总位移 < 5px）
-  - KVAL012: placement_failure（到达 B 但未稳定停留）
+**关键问题 2** — 骨架 2D 投影偏移 ~100px：缺少深度→彩色外参变换。修复：`P_color = R @ P_depth + T` 后再针孔投影。
 
-### 1.6 可视化
-- 12 段轨迹叠加视频（带阶段条 + 运动轨迹尾迹）
-- 可供论文 Supplementary Material 使用
+**关键问题 3** — 右臂 3D 追踪不可靠（RShoulder/RElbow 全部 LOW 置信度，骨长仅 10.7cm vs 正常 25cm）。**这是支线从人体追踪转向物体追踪的根本原因。**
+
+### 阶段 2：标记定位 (K06)
+
+**目标**：找到桌面上两个米白 X 形胶带标记 A 和 B，验证其 3D 距离等于物理真值 0.57m。
+
+**步骤 2.1** — 提取 K4A 标定参数（含 depth→color extrinsics）：
+```bash
+/tmp/extract_full_calib data/azure_kinect/raw_mkv/KVAL001.mkv calibration.json
+```
+输出：color_intrinsics (fx=913.724, fy=913.480, cx=962.170, cy=543.624)、depth_intrinsics、extrinsics (R, T)。
+
+**步骤 2.2** — 深度空间搜索标记点。利用 `extrinsics_depth_to_color` 将全部深度像素投影到 RGB 图像，在桌面区域（Z≈0.5-1.0m）搜索两个 3D 距离≈0.57m 的点：
+```python
+# 深度→RGB 正确映射（Conv1 约定）
+P_c = P_d @ R.T + T
+u = fx_c * X/Z + cx_c;  v = fy_c * Y/Z + cy_c
+```
+经多轮迭代修正，最终定位：
+- A: RGB(646, 750), 3D=(-0.256, 0.104, 0.844)m
+- B: RGB(1300, 796), 3D=(0.319, 0.137, 0.791)m
+- **AB 3D 距离: 0.579m，误差 0.9cm ✓**
+
+### 阶段 3：纸盒追踪 (K07)
+
+**目标**：追踪纸盒在每帧中的 2D 像素位置。
+
+**步骤 3.1** — 尝试自动追踪（颜色直方图、深度高度阈值、模板匹配）均失败：
+- 深度传感器在 0.8m 距离处分辨率不足（12cm 盒 ≈ 10px）
+- 棕色纸盒与木色桌面颜色相似
+- 快速运动中盒子外观变化（旋转、遮挡）
+
+**步骤 3.2** — 开发交互式标注工具 `annotate_box.py`：
+```bash
+python3 scripts/azure_kinect/annotate_box.py --video-id KVAL001
+```
+操作：鼠标左键点击纸盒中心 → 自动标记 + 跳 3 帧 → Q 保存为 `manual_annotations.json`。每段视频 15-25 个标注点，覆盖静止和运动阶段。
+
+**步骤 3.3** — Catmull-Rom 三次样条插值生成全帧轨迹：
+```python
+def catmull_rom(t, key_times, key_values):
+    # Hermite 基函数: h00, h10, h01, h11
+    # 自动计算切线（Catmull-Rom 张力）
+    return interpolated_value
+```
+对比线性插值，三次样条更贴合加速/减速运动（快速视频 KVAL008 中尤其明显）。
+
+**步骤 3.4** — 生成可视化视频：
+```python
+# OpenCV → mp4v 临时文件 → ffmpeg H.264 压缩
+# 叠加：A/B 标记 + 绿色纸盒位置 + 黄色 30 帧轨迹尾迹 + 底部彩色阶段条
+```
+每段视频 < 1.5MB，720p H.264。
+
+### 阶段 4：阶段识别 (K08)
+
+基于纸盒运动自动检测阶段边界。对每帧的 u/v 位移变化量 (du+dv) 进行阈值判断：
+- 位移 < 3px 持续 → stationary
+- 位移突然增大 + v 减小 → lift（盒上升，v 减小=画面中更高）
+- 位移大且持续 → transport
+- 位移减小 + v 增大 → place（盒下降）
+- 位移 < 3px → release
+
+输出 `box_events.json`，阶段标记显示在视频底部彩色条中。
+
+### 阶段 5：成败分类 (K09)
+
+物理规则判定，不使用机器学习：
+
+| 条件 | 判定 |
+|------|------|
+| 起始位置≈A，终点位置≈B（距离<15cm） | success |
+| 全程位置≈A（总位移<5px） | grasp_failure |
+| 到达 B 附近但最终距离>15cm | placement_failure |
+
+- KVAL001-010: **success**（盒从起点移动到终点）
+- KVAL011: **grasp_failure**（盒从未离开 A，21 个标注点全部在 610±2px）
+- KVAL012: **placement_failure**（盒到达 B 附近但放置不稳定）
+- KVAL013-014: **negative**（空桌面，确认无假阳性检测）
+
+### 阶段 6：中间清理
+
+废弃旧人体骨架支线的中间产物（~120 个文件）：kinect_skeleton、skeleton_2d_sdk、quality_summary、frame_sync、calibration 副本等。仅保留 ObjectGround3D 所需的 object3d/ 目录和原始 RGB-D 帧。
 
 ---
 
