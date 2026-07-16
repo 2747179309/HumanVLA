@@ -1,0 +1,20 @@
+{
+  "video_id": "KVAL001",
+  "task_type": "A_to_B_transport",
+  "classification": "success",
+  "confidence": "high",
+  "evidence": {
+    "box_moved_from_A_to_B": true,
+    "total_displacement_m": 0.59,
+    "final_distance_to_B_m": 0.05,
+    "final_distance_to_B_cm": 5.0,
+    "max_height_during_transport_cm": 2.5,
+    "start_near_A": true,
+    "end_near_B": true
+  },
+  "physical_rules_applied": [
+    "Final position within 15cm of marker B \u2192 placement successful",
+    "Total displacement > 30cm \u2192 box was moved",
+    "Box was lifted (max height > 0 during transport) \u2192 not just sliding"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "video_id": "KVAL001",
+  "method": "manual_annotation_interpolated",
+  "phases": [
+    {
+      "phase": "reach",
+      "frame_start": 0,
+      "frame_end": 90,
+      "description": "Box stationary at A, person reaching",
+      "x_mean": -0.245,
+      "x_range": [
+        -0.246,
+        -0.237
+      ],
+      "z_mean": 0.843,
+      "n_frames": 91,
+      "duration_sec": 3.0
+    },
+    {
+      "phase": "lift",
+      "frame_start": 90,
+      "frame_end": 120,
+      "description": "Box lifted off table surface",
+      "x_mean": -0.227,
+      "x_range": [
+        -0.243,
+        -0.214
+      ],
+      "z_mean": 0.834,
+      "n_frames": 31,
+      "duration_sec": 1.0
+    },
+    {
+      "phase": "transport",
+      "frame_start": 120,
+      "frame_end": 180,
+      "description": "Box carried from A toward B through air",
+      "x_mean": 0.183,
+      "x_range": [
+        -0.214,
+        0.712
+      ],
+      "z_mean": 0.815,
+      "n_frames": 61,
+      "duration_sec": 2.0
+    },
+    {
+      "phase": "place",
+      "frame_start": 180,
+      "frame_end": 201,
+      "description": "Box lowered onto B position",
+      "x_mean": 0.31,
+      "x_range": [
+        0.3,
+        0.327
+      ],
+      "z_mean": 0.797,
+      "n_frames": 22,
+      "duration_sec": 0.7
+    },
+    {
+      "phase": "release",
+      "frame_start": 201,
+      "frame_end": 334,
+      "description": "Box stationary at B, hand released",
+      "x_mean": 0.343,
+      "x_range": [
+        0.322,
+        0.36
+      ],
+      "z_mean": 0.812,
+      "n_frames": 134,
+      "duration_sec": 4.43
+    }
+  ]
+}
